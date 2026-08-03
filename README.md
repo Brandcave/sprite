@@ -20,6 +20,43 @@ npm run dev
 That's the whole input surface. The camera is locked — fixed yaw, pitch and
 distance, following the player — and the clock is not scrubbable.
 
+## Multiplayer
+
+```bash
+npm run server     # the relay, on :8787
+npm run dev        # the game, on :5173
+```
+
+Open the page, then send somebody the URL out of the address bar. Both of you
+walk around the same island, in the same weather, watching the same villagers.
+
+Almost nothing goes over the wire. The weather, the day, the villagers and every
+blade of grass are computed from the room's seed and clock — identically on
+every machine, because that is what the shared clock above is for — so the only
+things worth sending are the two a server cannot work out for itself: where the
+other people are, and what time it really is. That comes to **one message per
+step taken**, about five a second while somebody is walking and none at all
+while they stand still.
+
+`server/index.js` is the whole server, and it knows nothing about the island: it
+does not simulate weather, walk villagers, or hold a copy of the map. It says
+what time it is, passes on steps, and says who else is here. A room is
+identified by the epoch and seed already in the URL, so it does not even store
+what a room *is* — only who is in one.
+
+Two consequences worth stating:
+
+- **Remote players claim no tiles.** Under any latency two people can walk into
+  the same square at the same moment, and a shared occupancy map would turn that
+  into a phantom wall for whoever's packet lost. Walking through each other is
+  the friendlier bargain.
+- **There is no prediction and no smoothing**, because movement is grid-locked
+  and every step takes exactly 0.19s by design. Replaying someone's step *is*
+  the animation, at the same speed their own machine is playing it.
+
+If the relay is not running the game opens exactly as it always did, alone. The
+network is an enhancement here, not a dependency.
+
 ## How it works
 
 **Pixels → voxels.** `src/art.js` holds every asset as a char grid plus a shared

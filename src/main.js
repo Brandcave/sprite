@@ -8,6 +8,8 @@ import { ANOKA, TULA, SIGNS, WORN_SIGN } from './dialogue-scripts.js';
 import { VILLAGERS } from './art.js';
 import { Weather, DAY_LENGTH } from './weather.js';
 import { sim } from './sim.js';
+import { Net } from './net.js';
+import { RemotePlayer } from './remote.js';
 import { PlanarReflection } from './reflection.js';
 
 /* --------------------------------------------------------------- renderer */
@@ -110,6 +112,9 @@ function applyTimeOfDay(t) {
   const skin = 1.15 * (sun.intensity / 3.2) + 0.12;
   player.material.emissiveIntensity = skin;
   for (const npc of npcs) npc.material.emissiveIntensity = skin;
+  // everyone else in the room too, or they are silhouettes after dark: only the
+  // local hero carries a lantern
+  for (const who of remotes.values()) who.material.emissiveIntensity = skin;
   // a gentler one for foliage — backlit leaves glow, they do not go flat black
   const leaf = 0.72 * (sun.intensity / 3.2) + 0.05;
   for (const mat of foliage) mat.emissiveIntensity = leaf;
@@ -141,9 +146,14 @@ function applyTimeOfDay(t) {
 
 /* ------------------------------------------------------------------ world */
 
-// Read the shared clock before anything is built from it: the weather replays
-// the last few minutes on construction, and the villagers replay every step
-// they have taken since the world began.
+// Reach the relay *before* anything is built from the clock, and correct for
+// this machine's clock skew while we are at it: the weather replays the last
+// few minutes on construction and the villagers replay every step they have
+// taken, so both want the shared time, not this laptop's idea of it. With no
+// server to answer, this returns false after a moment and the island is yours
+// alone — the game does not need the network, it only makes use of one.
+const net = new Net();
+const online = await net.connect();
 sim.read();
 
 const { animated, lamps, foliage, lampMetal, windUniforms, puddles } = buildWorld(scene);
@@ -161,6 +171,30 @@ const npcs = [
 ];
 
 const dialogue = new Dialogue();
+
+/* ----------------------------------------------------------------- players */
+// Everyone else in the room. They are told to us one step at a time and nothing
+// else: no weather, no villagers, no world — all of that each machine already
+// agrees on by computing it. See net.js.
+const remotes = new Map();
+
+net.onJoin = (p) => {
+  if (p.id === net.id || remotes.has(p.id)) return;
+  remotes.set(p.id, new RemotePlayer(scene, p));
+};
+net.onMove = (m, warp) => {
+  const who = remotes.get(m.id);
+  if (who) who.moveTo(m.x, m.z, m.f, warp);
+  else if (m.id !== net.id) remotes.set(m.id, new RemotePlayer(scene, m));
+};
+net.onLeave = (id) => {
+  remotes.get(id)?.remove(scene);
+  remotes.delete(id);
+};
+// Say where we are the moment we arrive, rather than waiting for our first
+// step — otherwise somebody standing still is invisible to the room.
+net.step(player.tileX, player.tileZ, player.facing);
+net.start();
 
 // One mirrored render of the scene, shared by every puddle — they all lie on the
 // same plane, so this costs a pass per frame rather than a pass per puddle, and
@@ -308,6 +342,7 @@ addEventListener('resize', resize);
 resize();
 
 const hud = document.getElementById('clock');
+const netHud = document.getElementById('net');
 const clock = new THREE.Clock();
 
 function frame() {
@@ -320,8 +355,14 @@ function frame() {
   puddles.wet.value = weather.wet;
   applyTimeOfDay(dayT);
 
+  const walked = player.stepCount;
   player.update(dt, dialogue.active ? -1 : inputDirection(), YAW_INDEX);
+  // One message per step taken, sent as the step begins so everyone else walks
+  // it at the same moment we do. Standing still costs nothing.
+  if (player.stepCount !== walked) net.step(player.tileX, player.tileZ, player.facing);
+
   for (const npc of npcs) npc.update(dt, YAW_INDEX, player);
+  for (const who of remotes.values()) who.update(dt, YAW_INDEX);
   dialogue.update(dt);
   dialogue.showHint(!dialogue.active && facing()?.verb);
   updateCamera(dt);
@@ -329,6 +370,9 @@ function frame() {
 
   const hours = (dayT * 24 + 6) % 24;
   hud.textContent = `${String(Math.floor(hours)).padStart(2, '0')}:${String(Math.floor((hours % 1) * 60)).padStart(2, '0')}`;
+  netHud.textContent = net.online
+    ? `${remotes.size + 1} here · ${Math.round(net.rtt)}ms`
+    : (online === false ? 'alone' : '');
 
   // The puddles cannot be in their own reflection, and neither the rain nor the
   // swooshes belong in it — they are in front of the water, not above it.
@@ -355,6 +399,6 @@ Object.assign(window, {
     applyTimeOfDay(dayT);
   },
   setWeather: (type) => weather.force(type),
-  reflection, puddles, sim,
+  reflection, puddles, sim, net, remotes,
   weather,
 });

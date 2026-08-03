@@ -43,6 +43,7 @@ export class Character {
     scale = 1.35,             // sprite height in tiles
     stepTime = 0.19,          // seconds per tile — GB walk cadence
     shadow = 0.34,
+    ghost = false,            // claims no tile: see remote.js
   } = {}) {
     this.group = new THREE.Group();
     this.pivot = new THREE.Group();   // billboards toward the camera
@@ -58,7 +59,8 @@ export class Character {
     this.facing = 2;                  // index into FACING_NAMES, in screen space
     this.frame = 0;
     this.stepCount = 0;
-    occupied.set(keyOf(tileX, tileZ), this);
+    this.ghost = ghost;
+    if (!ghost) occupied.set(keyOf(tileX, tileZ), this);
 
     // The sun deliberately sits behind the world, which leaves a camera-facing
     // billboard almost entirely backlit. Rather than flood the scene with fill
