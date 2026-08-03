@@ -402,6 +402,29 @@ export const PROPS = {
     '................',
   ],
 
+  // Street lamp. Authored as one bitmap and split at build time: the 'y' pixels
+  // become a second mesh with an emissive material, so the glass can light up
+  // after dusk while the ironwork stays iron. Extruded thick — at this scale the
+  // depth matches the post's width, so it reads as a square post, not a slab.
+  lamp: [
+    '.....kkkkkk.....',
+    '.....kyyyyk.....',
+    '.....kyyyyk.....',
+    '.....kyyyyk.....',
+    '.....keeeek.....',
+    '......kKek......',
+    '.......Ke.......',
+    '.......Ke.......',
+    '.......Ke.......',
+    '.......Ke.......',
+    '.......Ke.......',
+    '.......Ke.......',
+    '.......Ke.......',
+    '.......Ke.......',
+    '......kKek......',
+    '.....kkeekk.....',
+  ],
+
   rock: [
     '................',
     '................',

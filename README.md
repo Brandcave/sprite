@@ -97,6 +97,12 @@ The day cycle interpolates sun colour/intensity/elevation, sky tint, fog, and
 tone-map exposure across four keyframes. After dusk the house windows turn
 emissive and the hero's lantern point light takes over.
 
+Street lamps flank the north–south road, two pairs of them, and run off the same
+switch as the house windows. Each is authored as a single bitmap whose glass
+pixels are split off at build time into a second mesh, so the ironwork can stay
+iron while the panes turn emissive after dusk — tinted by their own pixels, or a
+lit pane blows out to a white blob instead of going gold.
+
 One full cycle takes **24 real minutes** and runs continuously (1 real second =
 1 in-game minute). `theta` advances a full turn per day, so `t = 1` resolves to
 exactly the same sun direction as `t = 0`, and the keyframe table repeats its

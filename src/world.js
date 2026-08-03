@@ -11,6 +11,7 @@ import {
     .  grass          ,  path            ~  water/sea    _  beach sand
     T  tree           f  flower bed      "  tall grass   #  fence
     Y  palm tree (beach only — it stands in sand)
+    l  street lamp (flanking the north-south road; lights after dusk)
     s  sign           o  rock            c  pond curb     X  building footprint
 
   The grid is the island; open sea past the shoreline is a single large plane
@@ -30,7 +31,7 @@ const MAP = [
   '~~~~~~~_____Y___________..._______T______________Y_____~~~~~~~',
   '~~~~~~_______________......,,,,,,.......T.T____________~~~~~~~',
   '~~~~~~___________..T.......,,,,,,....TT.....T___________~~~~~~',
-  '~~~~~__Y________....T......,,,,,,...........T____________~~~~~',
+  '~~~~~__Y________....T.....l,,,,,,l..........T____________~~~~~',
   '~~~~~__________............,,,,,,..........o..___________~~~~~',
   '~~~~~_________T....XXXXXXX.,,,,,,...XXXXXXX...TT__________~~~~',
   '~~~~__Y______......XXXXXXX.,,,,,,...XXXXXXX.....T_________~~~~',
@@ -51,7 +52,7 @@ const MAP = [
   '~~~________................,,,,,,.......o..........________~~~',
   '~~~~_______.T......######..,,,,,,..######.......T..________~~~',
   '~~~~________.T.............,,,,,,................T.____Y__~~~~',
-  '~~~~________...............,,,,,,.................._______~~~~',
+  '~~~~________..............l,,,,,,l................._______~~~~',
   '~~~~________........._Y____,,,,,,____Y_...........________~~~~',
   '~~~~_________........_~~~~~~~~~~~~~~~~_..........T________~~~~',
   '~~~~_________........_~~~~~~~~~~~~~~~~_.........._________~~~~',
@@ -92,10 +93,11 @@ const GROUND = {
   '#': { tile: 'grass', h: 0.0 },
   s: { tile: 'grass', h: 0.0 },
   o: { tile: 'grass', h: 0.0 },
+  l: { tile: 'grass', h: 0.0 },
   X: { tile: 'stone', h: 0.0 },
 };
 
-const SOLID = new Set(['T', 'Y', '~', '#', 's', 'o', 'X', 'c']);
+const SOLID = new Set(['T', 'Y', '~', '#', 's', 'o', 'l', 'X', 'c']);
 
 export function tileAt(x, z) {
   if (x < 0 || z < 0 || x >= MAP_W || z >= MAP_H) return 'T';
@@ -196,6 +198,15 @@ export function buildWorld(scene) {
   const px = 1 / 16;
   const FLOWER_H = 0.55;                // flower cluster height, in tiles
 
+  // Street lamps: the ironwork merges into one mesh, the glass into another, and
+  // each lamp keeps a point light so the day cycle can switch them on at dusk.
+  const LAMP_H = 2.4;                   // total height, in tiles
+  const lampPx = px * LAMP_H;           // 16 pixels tall, so this is one pixel
+  const lampGeos = { post: [], glass: [] };
+  const lamps = [];
+  const lampMask = (rows, keep) =>
+    rows.map((r) => [...r].map((c) => (keep === (c === 'y') ? c : '.')).join(''));
+
   for (let z = 0; z < MAP_H; z++) {
     for (let x = 0; x < MAP_W; x++) {
       const ch = tileAt(x, z);
@@ -256,6 +267,22 @@ export function buildWorld(scene) {
         const g = voxelGeometry(PROPS.sign, { pixel: px, depth: 3 });
         g.translate(cx, y, cz);
         push('prop', g);
+      } else if (ch === 'l') {
+        for (const part of ['post', 'glass']) {
+          const g = voxelGeometry(lampMask(PROPS.lamp, part === 'glass'), {
+            pixel: lampPx,
+            depth: 3,          // near enough the post's width to read as a post
+          });
+          g.translate(cx, y, cz);
+          lampGeos[part].push(g);
+        }
+        // the glass sits ~13.5 pixels up from the base of the bitmap
+        const glow = new THREE.PointLight(0xffc060, 0, 10, 2);
+        glow.position.set(cx, y + 13.5 * lampPx, cz);
+        world.add(glow);
+        // brighter than a house window: it is further off the ground, and the
+        // pool it throws on the road is the whole reason the lamp is there
+        lamps.push({ glow, power: 3.2 });
       } else if (ch === 'o') {
         const g = flatVoxelGeometry(PROPS.rock, { pixel: px * 1.1, depth: 8, lift: 0.12 });
         g.rotateY(rand(x, z, 5) * 3);
@@ -263,6 +290,24 @@ export function buildWorld(scene) {
         push('prop', g);
       }
     }
+  }
+
+  if (lampGeos.post.length) {
+    const post = new THREE.Mesh(mergeGeometries(lampGeos.post), voxelMaterial());
+    post.castShadow = post.receiveShadow = true;
+    post.name = 'props:lamp';
+    world.add(post);
+
+    // One shared glass material for every lamp on the island — the day cycle
+    // fades its emissive up at dusk, and they all come on together. The emissive
+    // is tinted by the pane's own pixels rather than a flat warm white, which is
+    // what keeps a lit lamp gold instead of blowing out to a white blob.
+    const glassMat = vertexEmissive(voxelMaterial());
+    const glass = new THREE.Mesh(mergeGeometries(lampGeos.glass), glassMat);
+    glass.castShadow = true;
+    glass.name = 'props:lamp-glass';
+    world.add(glass);
+    for (const lamp of lamps) lamp.mat = glassMat;
   }
 
   // How much each prop type sways, and how tall it is for the sway falloff.
@@ -298,7 +343,6 @@ export function buildWorld(scene) {
 
   /* --------------------------------------------------------------- buildings */
   // Footprints tagged 'X' in the map; placed by hand so doors face the path.
-  const lamps = [];
   lamps.push(...buildHouse(world, { x: 19, z: 15, w: 7, d: 4, doorAt: 3 }));
   lamps.push(...buildHouse(world, { x: 36, z: 15, w: 7, d: 4, doorAt: 3 }));
 

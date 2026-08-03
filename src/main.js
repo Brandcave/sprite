@@ -107,9 +107,11 @@ function applyTimeOfDay(t) {
   // 0 in broad daylight, 1 in the dead of night
   const night = THREE.MathUtils.smoothstep(1 - sun.intensity / 1.6, 0, 1);
   lantern.intensity = night * 5.5;
-  for (const { mat, glow } of lamps) {
+  // `power` lets a street lamp burn brighter than a house window without
+  // needing its own pass here
+  for (const { mat, glow, power = 1 } of lamps) {
     mat.emissiveIntensity = night * 1.3;
-    glow.intensity = night * 4;
+    glow.intensity = night * 4 * power;
   }
 
   // Sun arcs east -> west; low and raking near dawn/dusk, steep at noon.
