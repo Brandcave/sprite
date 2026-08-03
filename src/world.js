@@ -197,6 +197,11 @@ export function buildWorld(scene) {
 
   const px = 1 / 16;
   const FLOWER_H = 0.55;                // flower cluster height, in tiles
+  // The beach is ~1250 tiles and this lands 28 shells on it — enough that you
+  // come across one now and then, far short of enough to look strewn. (The hash
+  // is not uniform, so the count is measured, not 1250/35.)
+  const SHELL_CHANCE = 1 / 35;
+  const SHELLS = ['sanddollar', 'scallop', 'conch'];
 
   // Street lamps: the ironwork merges into one mesh, the glass into another, and
   // each lamp keeps a point light so the day cycle can switch them on at dusk.
@@ -283,6 +288,16 @@ export function buildWorld(scene) {
         // brighter than a house window: it is further off the ground, and the
         // pool it throws on the road is the whole reason the lamp is there
         lamps.push({ glow, power: 3.2 });
+      } else if (ch === '_' && rand(x, z, 41) < SHELL_CHANCE) {
+        // Scattered rather than placed: a shell is too small to be worth a map
+        // character, and hand-placing them would read as a pattern. They do not
+        // block anything — you walk over them.
+        const kind = SHELLS[Math.floor(rand(x, z, 43) * SHELLS.length)];
+        const s = 0.85 + rand(x, z, 45) * 0.25;
+        const g = flatVoxelGeometry(PROPS[kind], { pixel: px * s, depth: 2, lift: 0.015 });
+        g.rotateY(rand(x, z, 47) * Math.PI * 2);
+        g.translate(cx + (rand(x, z, 49) - 0.5) * 0.5, y, cz + (rand(x, z, 51) - 0.5) * 0.5);
+        push('shell', g);
       } else if (ch === 'o') {
         const g = flatVoxelGeometry(PROPS.rock, { pixel: px * 1.1, depth: 8, lift: 0.12 });
         g.rotateY(rand(x, z, 5) * 3);

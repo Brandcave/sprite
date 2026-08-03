@@ -60,6 +60,9 @@ export const PALETTE = {
   // ramp — the face shading does the rest.
   V: '#e8ecf4',         // silver, lit
   Q: '#b4bcc8',         // silver, mid
+  // shells, bleached against the sand
+  E: '#f4ead6',
+  H: '#c9ab7c',         // ridge / growth line — the shape reads from these
 };
 
 // ---------------------------------------------------------------- tile art
@@ -430,6 +433,67 @@ export const PROPS = {
     '.......VQ.......',
     '......QVVQ......',
     '.....QVVVVQ.....',
+  ],
+
+  // Beach litter, laid flat on the sand. No outline: at five pixels across, a
+  // ring of dark edge is half the sprite and the whole thing reads as a bit of
+  // grit. Bleached shell against sand is contrast enough — the drop shadow and
+  // the cube sides do the separating.
+  sanddollar: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '.....EEEEEE.....',
+    '....EEEEEEEE....',
+    '....EEHEEHEE....',
+    '....EEEHHEEE....',
+    '....EEHEEHEE....',
+    '....EEEEEEEE....',
+    '.....EEEEEE.....',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+
+  scallop: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '......EEEE......',
+    '.....EEEEEE.....',
+    '....EEHEEHEE....',
+    '...EEHEEEEHEE...',
+    '...EEEHEEHEEE...',
+    '...EEEEEEEEEE...',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+
+  conch: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '......EEEE......',
+    '.....EEFEEE.....',
+    '....EEFEEFEE....',
+    '....EEEFFEEE....',
+    '.....EEEEEE.....',
+    '......EEEE......',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
   ],
 
   rock: [

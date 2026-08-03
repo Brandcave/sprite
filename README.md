@@ -43,6 +43,13 @@ into a sparse map and looks cells up. Three variants stand along the beach and
 the lagoon shore, and they sway harder and higher than the inland tree — the
 fronds are the point, the trunk barely moves.
 
+Shells are the one prop with no map character at all: they are scattered by the
+same per-tile hash across sand only, about one tile in thirty-five, which lands
+28 of them on a 1250-tile beach. Hand-placing that many would read as a pattern,
+and they are too small to be worth a tile you cannot walk on. Like the lamp they
+carry no outline — at five pixels across, a ring of dark edge is half the sprite
+and the whole thing reads as grit rather than as something bleached.
+
 **Ground.** Each map tile is a box whose top carries a nearest-filtered 16×16
 canvas texture. Boxes are merged per tile type, so the whole 48×44 island is a
 handful of draw calls. Tile height is per type — the pond curb stands proud of
