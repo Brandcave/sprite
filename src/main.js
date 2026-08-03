@@ -7,6 +7,7 @@ import { Dialogue, message } from './dialogue.js';
 import { ANOKA, TULA, SIGNS, WORN_SIGN } from './dialogue-scripts.js';
 import { VILLAGERS } from './art.js';
 import { Weather } from './weather.js';
+import { PlanarReflection } from './reflection.js';
 
 /* --------------------------------------------------------------- renderer */
 
@@ -139,7 +140,7 @@ function applyTimeOfDay(t) {
 
 /* ------------------------------------------------------------------ world */
 
-const { animated, lamps, foliage, lampMetal, windUniforms, puddleWet } = buildWorld(scene);
+const { animated, lamps, foliage, lampMetal, windUniforms, puddles } = buildWorld(scene);
 const player = new Player(scene, 31, 28);
 
 // Villagers. Each keeps to a home tile and a roam radius, so they stay where
@@ -150,6 +151,13 @@ const npcs = [
 ];
 
 const dialogue = new Dialogue();
+
+// One mirrored render of the scene, shared by every puddle — they all lie on the
+// same plane, so this costs a pass per frame rather than a pass per puddle, and
+// only on the frames where the ground is wet at all.
+const reflection = new PlanarReflection({ height: 0.012, scale: 0.5 });
+puddles.reflect.value = reflection.texture;
+puddles.matrix.value = reflection.textureMatrix;
 
 // Two or three spells of weather a day, rolled fresh each morning. It reads the
 // scene's own lights rather than owning them — see weather.js.
@@ -276,6 +284,7 @@ function resize() {
   const w = innerWidth;
   const h = innerHeight;
   renderer.setSize(w, h, false);
+  reflection.setSize(w, h);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
 }
@@ -291,7 +300,7 @@ function frame() {
 
   dayT = (dayT + dt / DAY_LENGTH) % 1;
   weather.update(dt, dayT, player.position);
-  puddleWet.value = weather.wet;
+  puddles.wet.value = weather.wet;
   applyTimeOfDay(dayT);
 
   player.update(dt, dialogue.active ? -1 : inputDirection(), YAW_INDEX);
@@ -303,6 +312,14 @@ function frame() {
 
   const hours = (dayT * 24 + 6) % 24;
   hud.textContent = `${String(Math.floor(hours)).padStart(2, '0')}:${String(Math.floor((hours % 1) * 60)).padStart(2, '0')}`;
+
+  // The puddles cannot be in their own reflection, and neither the rain nor the
+  // swooshes belong in it — they are in front of the water, not above it.
+  if (puddles.mesh && weather.wet > 0.02) {
+    reflection.update(renderer, scene, camera, [
+      puddles.mesh, weather.rainField.mesh, weather.gusts.mesh,
+    ]);
+  }
 
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
@@ -317,5 +334,6 @@ Object.assign(window, {
   THREE, scene, camera, renderer, player, npcs, dialogue, MAP_W, MAP_H,
   setDay: (t) => { dayT = t % 1; applyTimeOfDay(dayT); },
   setWeather: (type) => weather.force(type),
+  reflection, puddles,
   weather,
 });

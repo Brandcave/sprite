@@ -112,6 +112,8 @@ export function groundHeight(x, z) {
   return GROUND[tileAt(x, z)]?.h ?? 0;
 }
 
+const lerp = THREE.MathUtils.lerp;
+
 /** Deterministic per-tile jitter so props do not look stamped from a grid. */
 function rand(x, z, salt = 0) {
   const n = Math.sin(x * 127.1 + z * 311.7 + salt * 74.7) * 43758.5453;
@@ -340,24 +342,50 @@ export function buildWorld(scene) {
   // each puddle grows out of its own centre and fades in as the ground wets,
   // at its own threshold, so they arrive scattered over the shower rather than
   // all switching on together. Nothing here is rebuilt when it starts raining.
+  let puddleMesh = null;
   const puddleWet = { value: 0 };
+  const puddleReflect = { value: null };
+  const puddleMatrix = { value: new THREE.Matrix4() };
   const PUDDLE_ON = new Set(['.', ',', '_']);   // open ground only
   const PUDDLES = ['puddleWide', 'puddleRound', 'puddleSplit'];
   const puddleGeos = [];
 
+  // Where the ground lies low. Smooth over a few tiles rather than picked per
+  // tile, so wet tiles come in patches: a hollow spanning three or four tiles
+  // gets three or four overlapping puddles, which read as one large pool with a
+  // ragged edge instead of a polka dot of identical circles.
+  const lowGround = (x, z) => {
+    const S = 3.4;
+    const gx = x / S;
+    const gz = z / S;
+    const x0 = Math.floor(gx);
+    const z0 = Math.floor(gz);
+    const fx = gx - x0;
+    const fz = gz - z0;
+    const sx = fx * fx * (3 - 2 * fx);
+    const sz = fz * fz * (3 - 2 * fz);
+    const top = lerp(rand(x0, z0, 81), rand(x0 + 1, z0, 81), sx);
+    const bot = lerp(rand(x0, z0 + 1, 81), rand(x0 + 1, z0 + 1, 81), sx);
+    return lerp(top, bot, sz) + (rand(x, z, 83) - 0.5) * 0.06;   // ragged edges
+  };
+
   for (let z = 0; z < MAP_H; z++) {
     for (let x = 0; x < MAP_W; x++) {
       if (!PUDDLE_ON.has(tileAt(x, z))) continue;
-      if (rand(x, z, 61) >= 1 / 13) continue;
+      const depth = lowGround(x, z) - 0.76;
+      if (depth <= 0) continue;
 
       const kind = PUDDLES[Math.floor(rand(x, z, 63) * PUDDLES.length)];
-      const s = 0.8 + rand(x, z, 65) * 0.7;
-      const g = flatVoxelGeometry(PROPS[kind], { pixel: px * s, depth: 1, lift: 0.012 });
+      // deeper hollows hold wider water, and hold it sooner and longer
+      const s = 1.0 + depth * 4.5 + rand(x, z, 65) * 0.3;
+      const g = flatVoxelGeometry(PROPS[kind], { pixel: px * s, depth: 0.25, lift: 0.012, shade: false });
       g.rotateY(rand(x, z, 67) * Math.PI * 2);
-      const cx = x + 0.5 + (rand(x, z, 69) - 0.5) * 0.4;
-      const cz = z + 0.5 + (rand(x, z, 71) - 0.5) * 0.4;
+      const cx = x + 0.5 + (rand(x, z, 69) - 0.5) * 0.5;
+      const cz = z + 0.5 + (rand(x, z, 71) - 0.5) * 0.5;
       const cy = groundHeight(x, z);
-      g.translate(cx, cy, cz);
+      // a hair of height jitter: neighbours in a pool overlap, and coplanar
+      // overlapping water z-fights
+      g.translate(cx, cy + rand(x, z, 75) * 0.004, cz);
 
       // Where this puddle grows from, and how wet the ground has to get before
       // it starts. Both are per-vertex because the field is merged into one
@@ -365,7 +393,7 @@ export function buildWorld(scene) {
       const n = g.attributes.position.count;
       const centre = new Float32Array(n * 3);
       const seed = new Float32Array(n);
-      const threshold = rand(x, z, 73) * 0.7;
+      const threshold = Math.max(0, 0.66 - depth * 2.6);
       for (let i = 0; i < n; i++) {
         centre[i * 3] = cx;
         centre[i * 3 + 1] = cy + 0.012;
@@ -381,34 +409,54 @@ export function buildWorld(scene) {
   if (puddleGeos.length) {
     const mat = new THREE.MeshStandardMaterial({
       vertexColors: true,
-      roughness: 0.22,
-      metalness: 0.2,
+      roughness: 0.12,
+      metalness: 0.0,
       transparent: true,
       depthWrite: false,
     });
     mat.onBeforeCompile = (shader) => {
       shader.uniforms.uWet = puddleWet;
+      shader.uniforms.uReflect = puddleReflect;
+      shader.uniforms.uReflectMatrix = puddleMatrix;
       shader.vertexShader =
-        'attribute vec3 aCentre;\nattribute float aSeed;\nuniform float uWet;\nvarying float vGrow;\n'
+        'attribute vec3 aCentre;\nattribute float aSeed;\nuniform float uWet;\n'
+        + 'uniform mat4 uReflectMatrix;\nvarying float vGrow;\nvarying vec4 vReflUv;\n'
+        + 'varying float vFresnel;\n'
         + shader.vertexShader.replace('#include <begin_vertex>', `
           #include <begin_vertex>
           vGrow = smoothstep(aSeed, aSeed + 0.35, uWet);
           transformed = mix(aCentre, transformed, vGrow);
+
+          vec3 wp = (modelMatrix * vec4(transformed, 1.0)).xyz;
+          vReflUv = uReflectMatrix * vec4(wp, 1.0);
+          // Every puddle faces straight up, so the whole Fresnel term is how
+          // flat the view onto it is — no need for the normal at all.
+          vFresnel = pow(1.0 - clamp(normalize(cameraPosition - wp).y, 0.0, 1.0), 3.0);
         `);
       shader.fragmentShader =
-        'varying float vGrow;\n'
-        + shader.fragmentShader.replace(
-          '#include <color_fragment>',
-          '#include <color_fragment>\n\tdiffuseColor.a *= vGrow;',
-        );
+        'uniform sampler2D uReflect;\nvarying float vGrow;\nvarying vec4 vReflUv;\n'
+        + 'varying float vFresnel;\n'
+        + shader.fragmentShader
+          .replace('#include <color_fragment>', '#include <color_fragment>\n\tdiffuseColor.a *= vGrow;')
+          // Mixed in at the very end, against the already tone-mapped and
+          // encoded colour — which is exactly what the reflection pass holds,
+          // so both sides of the mix are in the same space.
+          .replace('#include <dithering_fragment>', `
+            #include <dithering_fragment>
+            vec3 refl = texture2D(uReflect, vReflUv.xy / vReflUv.w).rgb;
+            gl_FragColor.rgb = mix(gl_FragColor.rgb, refl, mix(0.5, 0.78, vFresnel) * vGrow);
+          `);
     };
     mat.customProgramCacheKey = () => 'puddle';
 
-    const puddles = new THREE.Mesh(mergeGeometries(puddleGeos), mat);
-    puddles.receiveShadow = true;      // but never casts: it is a film of water
-    puddles.renderOrder = 1;
-    puddles.name = 'props:puddles';
-    world.add(puddles);
+    puddleMesh = new THREE.Mesh(mergeGeometries(puddleGeos), mat);
+    // Neither casts nor receives: it is a film of water twelve millimetres above
+    // the ground, sharing shadow-map texels with it, and the acne that produces
+    // draws hard black seams straight across a pool.
+    puddleMesh.receiveShadow = false;
+    puddleMesh.renderOrder = 1;
+    puddleMesh.name = 'props:puddles';
+    world.add(puddleMesh);
   }
 
   // How much each prop type sways, and how tall it is for the sway falloff.
@@ -450,7 +498,10 @@ export function buildWorld(scene) {
   lamps.push(...buildHouse(world, { x: 17, z: 15, w: 7, d: 4, doorAt: 3 }));
   lamps.push(...buildHouse(world, { x: 36, z: 15, w: 7, d: 4, doorAt: 3 }));
 
-  return { world, animated, lamps, foliage, lampMetal, windUniforms, puddleWet };
+  return {
+    world, animated, lamps, foliage, lampMetal, windUniforms,
+    puddles: { wet: puddleWet, reflect: puddleReflect, matrix: puddleMatrix, mesh: puddleMesh },
+  };
 }
 
 /* ---------------------------------------------------------------- buildings */

@@ -103,8 +103,29 @@ uniform. Each puddle carries its own centre and its own threshold as vertex
 attributes, so it grows out of its own middle and fades in when the ground gets
 wet enough for it — which means they arrive scattered across the shower and,
 better, the shallow ones dry up first while the deep ones are still sitting
-there. They are drawn in the same water as the pond and the sea, so a puddle
-reads as the same substance and the street lamps glint in them at night.
+there.
+
+Where they land is a smooth low-ground field sampled over a few tiles rather
+than a per-tile roll, so wet tiles come in patches: a hollow spanning three or
+four tiles gets three or four overlapping puddles, which read as one large pool
+with a ragged edge instead of a polka dot of identical circles. Deeper hollows
+hold wider water, and hold it sooner and longer.
+
+**They reflect.** All the puddles lie on the same plane, so one mirrored render
+of the scene serves every one of them — a pass per frame rather than a pass per
+puddle, and only on frames where the ground is wet. `src/reflection.js` builds
+the virtual camera (reflecting the up vector too, or the image comes out
+inside-out) and skews the projection so its near plane sits exactly on the
+water; without that the reflection is nothing but the underside of the terrain,
+which hangs a full unit below every tile. Fog is switched off for the pass: the
+mirrored camera is half again as far from everything, and in rain, with the fog
+pulled right in, the reflection comes back as a flat sheet of grey.
+
+One deliberate lie. A true mirror under a camera looking down at 46° reflects
+the sky and almost nothing else, which is honest and reads as a blue sticker.
+The virtual camera is pulled part-way toward the water instead, flattening its
+view until the palms and lamps and houses actually turn up in the puddle —
+`flatten` on the reflection, 1 being a true mirror.
 
 The lighting layers *on top of* the day cycle rather than replacing it.
 `applyTimeOfDay()` writes the clear-sky baseline for the hour, then the weather

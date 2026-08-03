@@ -66,6 +66,7 @@ export function voxelGeometry(rows, {
   pixel = 1 / 16,     // world size of one pixel
   depth = 3,          // thickness in pixels
   mirror = false,
+  shade = true,       // false: every face at full value, for things with no sides
 } = {}) {
   let grid = normalize(rows);
   if (mirror) grid = grid.map((r) => [...r].reverse().join(''));
@@ -79,12 +80,13 @@ export function voxelGeometry(rows, {
 
   const dz = (depth * pixel) / 2;
 
-  const quad = (verts, normal, color, shade) => {
+  const quad = (verts, normal, color, face) => {
+    const s = shade ? face : 1;
     const start = pos.length / 3;
     for (const v of verts) {
       pos.push(v[0], v[1], v[2]);
       nrm.push(normal[0], normal[1], normal[2]);
-      col.push(color.r * shade, color.g * shade, color.b * shade);
+      col.push(color.r * s, color.g * s, color.b * s);
     }
     idx.push(start, start + 1, start + 2, start, start + 2, start + 3);
   };
