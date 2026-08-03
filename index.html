@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Voxel Kanto — PoC</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #0d1426; }
+      #view { display: block; width: 100vw; height: 100vh; }
+
+      .hud {
+        position: fixed;
+        font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: #eaf2ff;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
+        user-select: none;
+        pointer-events: none;
+      }
+      #clockwrap {
+        right: 16px; top: 16px;
+        padding: 10px 16px;
+        background: rgba(10, 16, 30, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 8px;
+        backdrop-filter: blur(8px);
+        text-align: center;
+      }
+      #clock { font-size: 20px; letter-spacing: 0.08em; }
+    </style>
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+
+    <div class="hud" id="clockwrap">
+      <span id="clock">08:00</span>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
