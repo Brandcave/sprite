@@ -11,18 +11,25 @@ import { Character } from './character.js';
   design, replaying someone's step *is* the animation. There is nothing to
   interpolate and nothing to correct.
 
-  Remote players claim no tiles. Under any latency at all, two people can decide
-  to walk into the same square at the same moment, and a shared occupancy map
-  would turn that into a phantom wall for whoever's packet arrived second.
-  Walking through each other is the friendlier bargain, and it is the one nearly
-  every game of this shape makes.
+  They hold their tile like anyone else: you cannot stand where somebody else is
+  standing. The blocking is each client's own — nobody asks the server for
+  permission to step — which keeps walking instant, at the cost of one honest
+  edge case. Two people who step into the same square within a round trip of
+  each other will both succeed and overlap for a moment, because neither had
+  been told about the other yet. It resolves itself: from the instant the
+  messages land, neither can step into the other again, and the square empties
+  as soon as one of them walks on.
+
+  The alternative is asking the server to arbitrate every step, which is
+  correct, and which makes every step wait a round trip or snap back afterwards.
+  Not worth it to win a tie nobody is trying to win.
 */
 
 const SKINS = [HERO, VILLAGERS.straw, VILLAGERS.weaver];
 
 export class RemotePlayer extends Character {
   constructor(scene, { id, x, z, f = 2, skin = 0 }) {
-    super(scene, SKINS[skin % SKINS.length], x, z, { ghost: true });
+    super(scene, SKINS[skin % SKINS.length], x, z);
     this.id = id;
     this.isPlayer = true;        // villagers ignore us, as they do the local hero
     this.facing = f;
@@ -38,19 +45,8 @@ export class RemotePlayer extends Character {
   moveTo(x, z, facing, warp = false) {
     this.facing = facing;
     const far = Math.abs(x - this.tileX) + Math.abs(z - this.tileZ) > 1;
-    if (warp || far) {
-      this.tileX = this.fromX = x;
-      this.tileZ = this.fromZ = z;
-      this.moveT = 1;
-      this.sync();
-      return;
-    }
-    this.fromX = this.tileX;
-    this.fromZ = this.tileZ;
-    this.tileX = x;
-    this.tileZ = z;
-    this.moveT = 0;
-    this.stepCount++;
+    if (warp || far) this.placeAt(x, z);
+    else this.walkInto(x, z);
   }
 
   update(dt, cameraYawIndex) {
@@ -59,6 +55,7 @@ export class RemotePlayer extends Character {
   }
 
   remove(scene) {
+    this.dispose();                // hand back the tile they were standing on
     scene.remove(this.group);
     this.group.traverse((o) => {
       if (o.isMesh && o.geometry) o.geometry.dispose();

@@ -37,6 +37,7 @@ export class Net {
     this.onJoin = () => {};
     this.onMove = () => {};
     this.onLeave = () => {};
+    this.onDrop = () => {};
   }
 
   /**
@@ -77,6 +78,9 @@ export class Net {
       };
       ws.onerror = () => { clearTimeout(timer); done(false); };
       ws.onclose = () => {
+        // Everyone we could see is now hearsay: clear them out rather than
+        // leave a room full of statues nobody can walk through.
+        if (this.online) this.onDrop();
         this.online = false;
         clearTimeout(timer);
         done(false);
@@ -151,6 +155,28 @@ export class Net {
 
   step(x, z, facing) {
     this.send({ t: 'step', x, z, f: facing });
+  }
+
+  /**
+   * Leave properly when the page goes away, and come back when it returns.
+   *
+   * This is not belt and braces — without it a departing player haunts the room
+   * indefinitely. A browser navigating away can put the whole page in its
+   * back/forward cache: frozen, no JavaScript running, but the socket still
+   * open, and still answering the server's pings, because a protocol-level pong
+   * is sent by the browser itself and needs no page to be awake. So the server
+   * cannot tell the difference, the heartbeat never fires, and since players
+   * block each other the ghost is a permanent wall on a tile.
+   *
+   * pagehide is the event that fires as the page is frozen or unloaded, which
+   * makes it the only reliable moment to say goodbye.
+   */
+  watchPage(reannounce) {
+    addEventListener('pagehide', () => this.ws?.close());
+    addEventListener('pageshow', async (e) => {
+      if (!e.persisted || this.online) return;    // restored from the cache
+      if (await this.connect()) reannounce();
+    });
   }
 
   /** Re-measure the clock now and then: skew creeps, and tabs get suspended. */

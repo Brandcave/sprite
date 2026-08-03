@@ -157,7 +157,11 @@ const online = await net.connect();
 sim.read();
 
 const { animated, lamps, foliage, lampMetal, windUniforms, puddles } = buildWorld(scene);
-const player = new Player(scene, 31, 28);
+// Spread arrivals around the plaza: with players blocking each other, a room
+// where everyone spawns on one square is a room where nobody can move.
+const SPAWN = [[31, 28], [30, 28], [32, 28], [31, 27], [30, 27], [32, 27], [31, 29], [30, 29], [32, 29]];
+const spawn = SPAWN[(net.id ?? 0) % SPAWN.length];
+const player = new Player(scene, spawn[0], spawn[1]);
 
 // Villagers. Each keeps to a home tile and a roam radius, so they stay where
 // they were placed — one on the lawn by the path, one up by the houses.
@@ -191,9 +195,15 @@ net.onLeave = (id) => {
   remotes.get(id)?.remove(scene);
   remotes.delete(id);
 };
+net.onDrop = () => {
+  for (const who of remotes.values()) who.remove(scene);
+  remotes.clear();
+};
 // Say where we are the moment we arrive, rather than waiting for our first
 // step — otherwise somebody standing still is invisible to the room.
-net.step(player.tileX, player.tileZ, player.facing);
+const announce = () => net.step(player.tileX, player.tileZ, player.facing);
+announce();
+net.watchPage(announce);
 net.start();
 
 // One mirrored render of the scene, shared by every puddle — they all lie on the

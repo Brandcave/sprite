@@ -19,23 +19,54 @@ export const DIRS = [
 const FACING_NAMES = ['up', 'right', 'down', 'left'];
 
 // Tiles claimed by a character. A walker claims its destination the moment it
-// starts moving, so two characters can never converge on the same tile — and
-// the player cannot walk through an NPC, which is what makes it feel present.
+// starts moving, so two characters cannot converge on the same tile.
+//
+// A tile holds a *set*, not a single occupant, because with more than one
+// player the invariant genuinely can break for a moment: two people a hundred
+// milliseconds apart can each be told about the other only after both have
+// stepped, and for an instant they really are in the same square. A map of one
+// occupant each would quietly corrupt itself there — the second claim would
+// evict the first, and when the second walked away it would take the first
+// one's registration with it, leaving a character standing on a tile the world
+// believes is empty. A set just holds both until one of them moves.
 const occupied = new Map();
 const keyOf = (x, z) => x * 4096 + z;
 
+function claim(x, z, who) {
+  const k = keyOf(x, z);
+  let here = occupied.get(k);
+  if (!here) occupied.set(k, (here = new Set()));
+  here.add(who);
+}
+
+function release(x, z, who) {
+  const k = keyOf(x, z);
+  const here = occupied.get(k);
+  if (!here) return;
+  here.delete(who);
+  if (!here.size) occupied.delete(k);
+}
+
 export function tileOccupied(x, z, ignore = null, ignorePlayers = false) {
-  const who = occupied.get(keyOf(x, z));
-  if (who === undefined || who === ignore) return false;
-  // Villagers path as though players were not there. If they steered around us
-  // their route would depend on where everyone happened to be standing, which
-  // is precisely the sort of thing that differs from client to client.
-  return !(ignorePlayers && who.isPlayer);
+  const here = occupied.get(keyOf(x, z));
+  if (!here) return false;
+  for (const who of here) {
+    if (who === ignore) continue;
+    // Villagers path as though players were not there. If they steered around
+    // us their route would depend on where everybody happened to be standing,
+    // which is precisely the sort of thing that differs between clients.
+    if (ignorePlayers && who.isPlayer) continue;
+    return true;
+  }
+  return false;
 }
 
 /** Whoever is standing on (or walking into) that tile. */
 export function characterAt(x, z) {
-  return occupied.get(keyOf(x, z)) ?? null;
+  const here = occupied.get(keyOf(x, z));
+  if (!here) return null;
+  for (const who of here) if (who.script) return who;   // prefer someone to talk to
+  return here.values().next().value ?? null;
 }
 
 export class Character {
@@ -43,7 +74,6 @@ export class Character {
     scale = 1.35,             // sprite height in tiles
     stepTime = 0.19,          // seconds per tile — GB walk cadence
     shadow = 0.34,
-    ghost = false,            // claims no tile: see remote.js
   } = {}) {
     this.group = new THREE.Group();
     this.pivot = new THREE.Group();   // billboards toward the camera
@@ -59,8 +89,7 @@ export class Character {
     this.facing = 2;                  // index into FACING_NAMES, in screen space
     this.frame = 0;
     this.stepCount = 0;
-    this.ghost = ghost;
-    if (!ghost) occupied.set(keyOf(tileX, tileZ), this);
+    claim(tileX, tileZ, this);
 
     // The sun deliberately sits behind the world, which leaves a camera-facing
     // billboard almost entirely backlit. Rather than flood the scene with fill
@@ -118,15 +147,35 @@ export class Character {
     const nz = this.tileZ + d.dz;
     if (!this.walkable(nx, nz, ignorePlayers)) return false;
 
-    occupied.delete(keyOf(this.tileX, this.tileZ));
+    this.walkInto(nx, nz);
+    return true;
+  }
+
+  /** Start walking into a tile, claiming it up front so nobody else takes it. */
+  walkInto(x, z) {
+    release(this.tileX, this.tileZ, this);
     this.fromX = this.tileX;
     this.fromZ = this.tileZ;
-    this.tileX = nx;
-    this.tileZ = nz;
-    occupied.set(keyOf(nx, nz), this);   // claim the destination up front
+    this.tileX = x;
+    this.tileZ = z;
+    claim(x, z, this);
     this.moveT = 0;
     this.stepCount++;
-    return true;
+  }
+
+  /** Appear somewhere outright, with no walk between. */
+  placeAt(x, z) {
+    release(this.tileX, this.tileZ, this);
+    this.tileX = this.fromX = x;
+    this.tileZ = this.fromZ = z;
+    claim(x, z, this);
+    this.moveT = 1;
+    this.sync();
+  }
+
+  /** Give up our tile — for someone who has left the room. */
+  dispose() {
+    release(this.tileX, this.tileZ, this);
   }
 
   /** Point the sprite along a world-space direction, in screen space. */

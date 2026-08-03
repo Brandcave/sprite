@@ -25,6 +25,7 @@ const PORT = process.env.PORT ? +process.env.PORT : 8787;
 const MAP_W = 62;
 const MAP_H = 56;
 const STEP_RATE = 25;             // steps per second a client may send
+const HEARTBEAT = 10000;          // how often to check everyone is still there
 
 const rooms = new Map();          // key -> Map<id, client>
 let nextId = 1;
@@ -78,6 +79,8 @@ wss.on('connection', (ws, req) => {
     window: 0,
   };
   room.set(me.id, me);
+  ws.alive = true;
+  ws.on('pong', () => { ws.alive = true; });
 
   send(ws, {
     t: 'welcome',
@@ -139,6 +142,7 @@ wss.on('connection', (ws, req) => {
   });
 
   const leave = () => {
+    if (!room.has(me.id)) return;
     room.delete(me.id);
     broadcast(room, { t: 'bye', id: me.id });
     if (room.size === 0) rooms.delete(key);
@@ -146,6 +150,25 @@ wss.on('connection', (ws, req) => {
   ws.on('close', leave);
   ws.on('error', leave);
 });
+
+/*
+  Not everyone says goodbye. A crashed tab, a closed laptop or a dropped
+  connection leaves a socket that looks open and will never speak again, and the
+  player behind it stands in the room forever — which since players block each
+  other means a permanent invisible wall on a tile nobody can use. So: ping
+  everybody on a timer and hang up on whoever fails to answer. terminate()
+  raises 'close', so they leave by the same door as everybody else.
+*/
+setInterval(() => {
+  for (const ws of wss.clients) {
+    if (!ws.alive) {
+      ws.terminate();
+      continue;
+    }
+    ws.alive = false;
+    ws.ping();
+  }
+}, HEARTBEAT);
 
 http.listen(PORT, () => {
   console.log(`relay listening on :${PORT}`);
