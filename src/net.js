@@ -31,6 +31,7 @@ export class Net {
   constructor() {
     this.ws = null;
     this.id = null;
+    this.roster = [];
     this.online = false;
     this.rtt = 0;
     this.samples = [];
@@ -38,6 +39,7 @@ export class Net {
     this.onMove = () => {};
     this.onLeave = () => {};
     this.onDrop = () => {};
+    this.onSay = () => {};
   }
 
   /**
@@ -104,7 +106,13 @@ export class Net {
         // browsers clamp setTimeout to a second and five 60ms pings took five.
         ready();
         this.sync(SYNC_PINGS);
-        for (const p of msg.players) this.onJoin(p);
+        // Whoever is already standing about. This arrives inside connect(),
+        // which is over before the game has built a scene to put them in, so it
+        // is kept rather than announced — see the caller, which replays it once
+        // it is ready. Handing it straight to onJoin drops the lot on the floor,
+        // and a player who is standing still sends nothing else to give
+        // themselves away: they stay invisible until they happen to walk.
+        this.roster = msg.players ?? [];
         break;
       case 'pong':
         this.sample(msg.c, msg.s, Date.now());
@@ -117,6 +125,9 @@ export class Net {
         break;
       case 'warp':
         this.onMove(msg, true);
+        break;
+      case 'said':
+        this.onSay(msg.from | 0, String(msg.text ?? ''));
         break;
       case 'bye':
         this.onLeave(msg.id);
@@ -155,6 +166,15 @@ export class Net {
 
   step(x, z, facing) {
     this.send({ t: 'step', x, z, f: facing });
+  }
+
+  /**
+   * Say something to one person. Addressed rather than broadcast: the relay
+   * hands it to that player and nobody else, so standing next to two people
+   * does not mean talking to both.
+   */
+  say(to, text) {
+    this.send({ t: 'say', to, text });
   }
 
   /**

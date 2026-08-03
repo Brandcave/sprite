@@ -13,6 +13,7 @@ import { WebSocketServer } from 'ws';
     - say what time it is, so clients can correct for their own clock skew
     - pass on where people are walking
     - say who else is here
+    - carry what one player types to the one they are talking to
 
   A room is identified by the epoch and seed already in the page URL, so the
   server does not even store what a room *is*. It stores who is in one.
@@ -25,6 +26,9 @@ const PORT = process.env.PORT ? +process.env.PORT : 8787;
 const MAP_W = 62;
 const MAP_H = 56;
 const STEP_RATE = 25;             // steps per second a client may send
+const MAX_SAY = 120;              // characters in one message
+const SAY_RATE = 4;               // messages per SAY_WINDOW
+const SAY_WINDOW = 2000;
 const HEARTBEAT = 10000;          // how often to check everyone is still there
 
 const rooms = new Map();          // key -> Map<id, client>
@@ -77,6 +81,8 @@ wss.on('connection', (ws, req) => {
     skin: nextId % 3,
     steps: 0,
     window: 0,
+    says: 0,
+    sayWindow: 0,
   };
   room.set(me.id, me);
   ws.alive = true;
@@ -103,6 +109,34 @@ wss.on('connection', (ws, req) => {
       // Half of a clock handshake: echo the client's stamp back alongside ours
       // so it can work out the round trip and the offset between us.
       send(ws, { t: 'pong', c: msg.c, s: Date.now() });
+      return;
+    }
+
+    if (msg.t === 'say') {
+      // Addressed to one person, and only to somebody in the same room —
+      // room.get is the whole of that check, since a room is the only place
+      // this server keeps anybody.
+      const to = room.get(msg.to | 0);
+      if (!to || to.id === me.id) return;
+
+      // Collapse whitespace and drop control characters: the client paginates
+      // this into a fixed two-line box, and a stray newline or a run of tabs
+      // makes a mess of somebody else's screen, not the sender's.
+      const text = String(msg.text ?? '')
+        .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, MAX_SAY);
+      if (!text) return;
+
+      const now = Date.now();
+      if (now - me.sayWindow > SAY_WINDOW) {
+        me.sayWindow = now;
+        me.says = 0;
+      }
+      if (++me.says > SAY_RATE) return;
+
+      send(to.ws, { t: 'said', from: me.id, text });
       return;
     }
 

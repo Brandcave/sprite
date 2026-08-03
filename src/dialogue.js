@@ -18,12 +18,18 @@
 
   Long text is wrapped and paginated here, so scripts are written as prose and
   never have to care where the line breaks fall.
+
+  The same box also takes typing — see ask(). A villager's lines are written
+  months in advance and another player's are written while you wait, but there
+  is no reason for them to arrive in different furniture, so they do not.
 */
 
 const WRAP = 34;              // characters per line
 const LINES = 2;              // lines visible at once
 const CHAR_MS = 17;           // typewriter speed
+const MAX_TEXT = 120;         // as much as anybody needs to say at once
 const CONFIRM = new Set(['Enter', 'Space', 'KeyZ', 'KeyE']);
+const SUBMIT = new Set(['Enter', 'NumpadEnter']);
 const UP = new Set(['ArrowUp', 'KeyW']);
 const DOWN = new Set(['ArrowDown', 'KeyS']);
 
@@ -62,6 +68,25 @@ const CSS = `
 }
 .dlg-more[hidden] { display: none; }
 @keyframes dlg-blink { 0%, 55% { opacity: 1; } 56%, 100% { opacity: 0; } }
+
+/* the same two lines, but you are the one writing them */
+.dlg-entry { display: flex; align-items: baseline; gap: 6px; min-height: 1.5em; }
+.dlg-entry[hidden] { display: none; }
+.dlg-entry .dlg-cur { visibility: visible; animation: dlg-blink 0.9s steps(1, end) infinite; }
+.dlg-field {
+  flex: 1; min-width: 0; padding: 0;
+  font: inherit; color: inherit; background: none; border: 0; outline: none;
+  caret-color: #3860b8;
+  pointer-events: auto; user-select: text;
+}
+.dlg-keys {
+  padding: 5px 12px; border-radius: 7px;
+  background: rgba(10, 16, 30, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 0.66em; letter-spacing: 0.1em; color: #eaf2ff;
+}
+.dlg-keys[hidden] { display: none; }
+.dlg-keys b { color: #ffd47a; }
 
 /* the choice menu sits above the text, right-aligned, like a shop list */
 .dlg-menu { align-self: center; width: ${WRAP + 4}ch; max-width: 100%; display: flex; justify-content: flex-end; }
@@ -131,8 +156,14 @@ export class Dialogue {
       <div class="dlg-box dlg-panel">
         <div class="dlg-name dlg-panel"></div>
         ${Array.from({ length: LINES }, () => '<div class="dlg-line"></div>').join('')}
+        <div class="dlg-entry" hidden>
+          <span class="dlg-cur">▶</span>
+          <input class="dlg-field" type="text" maxlength="${MAX_TEXT}"
+                 autocomplete="off" autocapitalize="off" spellcheck="false">
+        </div>
         <div class="dlg-more" hidden>▼</div>
-      </div>`;
+      </div>
+      <div class="dlg-keys" hidden><b>ENTER</b> send &nbsp;·&nbsp; <b>ESC</b> walk away</div>`;
     parent.appendChild(root);
 
     const hint = document.createElement('div');
@@ -149,9 +180,15 @@ export class Dialogue {
       name: root.querySelector('.dlg-name'),
       lines: [...root.querySelectorAll('.dlg-line')],
       more: root.querySelector('.dlg-more'),
+      entry: root.querySelector('.dlg-entry'),
+      field: root.querySelector('.dlg-field'),
+      keys: root.querySelector('.dlg-keys'),
     };
 
     this.script = null;
+    this.composing = false;
+    this.onSend = null;
+    this.onCancel = null;
     this.onClose = null;
     this.node = null;
     this.pages = [];
@@ -163,7 +200,7 @@ export class Dialogue {
   }
 
   get active() {
-    return this.script !== null;
+    return this.script !== null || this.composing;
   }
 
   get typing() {
@@ -184,12 +221,51 @@ export class Dialogue {
 
   start(script, onClose = null) {
     this.script = script;
+    this.composing = false;
     this.onClose = onClose;
     this.el.name.textContent = script.name ?? '';
     this.el.name.hidden = !script.name;
+    this.el.entry.hidden = true;
+    this.el.keys.hidden = true;
     this.el.root.hidden = false;
     this.el.hint.hidden = true;
     this.goto(script.start ?? Object.keys(script.nodes)[0]);
+  }
+
+  /**
+   * Hand the box over to the player and let them write the next line.
+   *
+   * `keep` leaves whatever is on screen where it is, which is what you want
+   * when replying: their sentence stays above your answer while you type it,
+   * the way it would if you were standing there.
+   */
+  ask(name, { onSend, onCancel = null, keep = false } = {}) {
+    this.script = null;
+    this.node = null;
+    this.composing = true;
+    this.onSend = onSend;
+    this.onCancel = onCancel;
+    this.hideChoices();
+    if (!keep) for (const el of this.el.lines) el.textContent = '';
+    this.el.name.textContent = name ?? '';
+    this.el.name.hidden = !name;
+    this.el.more.hidden = true;
+    this.el.entry.hidden = false;
+    this.el.keys.hidden = false;
+    this.el.root.hidden = false;
+    this.el.hint.hidden = true;
+    this.el.field.value = '';
+    this.el.field.focus();
+  }
+
+  /** Enter, with something written. Nothing written means you thought better of it. */
+  submit() {
+    const text = this.el.field.value.trim();
+    if (!text) return this.close('escape');
+    const send = this.onSend;
+    this.onCancel = null;
+    this.close('sent');
+    send?.(text);
   }
 
   goto(id) {
@@ -254,6 +330,14 @@ export class Dialogue {
   /** @returns whether the key was consumed */
   key(code) {
     if (!this.active) return false;
+    if (code === 'Escape') { this.close('escape'); return true; }
+    if (this.composing) {
+      // A click on the canvas takes the caret away; take it back rather than
+      // silently swallowing what they type next.
+      if (document.activeElement !== this.el.field) this.el.field.focus();
+      if (SUBMIT.has(code)) { this.submit(); return true; }
+      return false;             // everything else is theirs to type
+    }
     if (this.choices) {
       if (UP.has(code)) { this.moveCursor(-1); return true; }
       if (DOWN.has(code)) { this.moveCursor(1); return true; }
@@ -271,7 +355,7 @@ export class Dialogue {
   }
 
   update(dt) {
-    if (!this.active || this.choices) return;
+    if (!this.script || this.choices) return;
     if (this.typing) {
       this.shown = Math.min(this.total, this.shown + (dt * 1000) / CHAR_MS);
       this.render();
@@ -290,13 +374,26 @@ export class Dialogue {
     this.el.more.hidden = this.typing;
   }
 
-  close() {
+  /**
+   * `why` is 'end' when the text simply ran out, 'sent' when they wrote
+   * something, and 'escape' when they walked away from it — which is the
+   * difference between a conversation that wants a reply and one that does not.
+   */
+  close(why = 'end') {
     this.script = null;
     this.node = null;
+    this.composing = false;
     this.hideChoices();
+    this.el.entry.hidden = true;
+    this.el.keys.hidden = true;
+    if (document.activeElement === this.el.field) this.el.field.blur();
     this.el.root.hidden = true;
     const cb = this.onClose;
+    const cancelled = why === 'escape' ? this.onCancel : null;
     this.onClose = null;
-    if (cb) cb();
+    this.onCancel = null;
+    this.onSend = null;
+    if (cb) cb(why);
+    if (cancelled) cancelled();
   }
 }

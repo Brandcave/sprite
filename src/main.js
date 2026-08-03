@@ -4,6 +4,7 @@ import { Player } from './player.js';
 import { Npc } from './npc.js';
 import { DIRS, characterAt } from './character.js';
 import { Dialogue, message } from './dialogue.js';
+import { Chat, nameOf } from './chat.js';
 import { ANOKA, TULA, SIGNS, WORN_SIGN } from './dialogue-scripts.js';
 import { VILLAGERS } from './art.js';
 import { Weather, DAY_LENGTH } from './weather.js';
@@ -175,6 +176,7 @@ const npcs = [
 ];
 
 const dialogue = new Dialogue();
+const chat = new Chat({ net, dialogue });
 
 /* ----------------------------------------------------------------- players */
 // Everyone else in the room. They are told to us one step at a time and nothing
@@ -199,11 +201,16 @@ net.onDrop = () => {
   for (const who of remotes.values()) who.remove(scene);
   remotes.clear();
 };
-// Say where we are the moment we arrive, rather than waiting for our first
-// step — otherwise somebody standing still is invisible to the room.
-const announce = () => net.step(player.tileX, player.tileZ, player.facing);
-announce();
-net.watchPage(announce);
+// Two halves of arriving, and both matter. Read the room the relay handed us
+// on connection — it has been waiting since before there was a scene to put
+// anybody in — and then say where we are, rather than waiting for our first
+// step. Either one skipped leaves somebody standing still and invisible.
+const arrive = () => {
+  for (const p of net.roster) net.onJoin(p);
+  net.step(player.tileX, player.tileZ, player.facing);
+};
+arrive();
+net.watchPage(arrive);
 net.start();
 
 // One mirrored render of the scene, shared by every puddle — they all lie on the
@@ -316,6 +323,9 @@ function facing() {
 
   const who = characterAt(x, z);
   if (who?.script) return { verb: 'talk', npc: who };
+  // Somebody real. They get the same verb as a villager — from where the player
+  // is standing there is no difference worth advertising.
+  if (who?.id != null) return { verb: 'talk', peer: who };
   if (tileAt(x, z) === 's') return { verb: 'read', sign: `${x},${z}` };
   return null;
 }
@@ -323,7 +333,9 @@ function facing() {
 function interact() {
   const target = facing();
   if (!target) return;
-  if (target.npc) {
+  if (target.peer) {
+    chat.talkTo(target.peer.id);
+  } else if (target.npc) {
     target.npc.talking = true;
     dialogue.start(target.npc.script, () => { target.npc.talking = false; });
   } else {
@@ -374,6 +386,9 @@ function frame() {
   for (const npc of npcs) npc.update(dt, YAW_INDEX, player);
   for (const who of remotes.values()) who.update(dt, YAW_INDEX);
   dialogue.update(dt);
+  // Anything said to us while the box was busy has been queued rather than
+  // thrown on screen over the top of whatever was there; this is where it lands.
+  chat.drain();
   dialogue.showHint(!dialogue.active && facing()?.verb);
   updateCamera(dt);
   for (const fn of animated) fn(t);
@@ -381,7 +396,7 @@ function frame() {
   const hours = (dayT * 24 + 6) % 24;
   hud.textContent = `${String(Math.floor(hours)).padStart(2, '0')}:${String(Math.floor((hours % 1) * 60)).padStart(2, '0')}`;
   netHud.textContent = net.online
-    ? `${remotes.size + 1} here · ${Math.round(net.rtt)}ms`
+    ? `${nameOf(net.id)} · ${remotes.size + 1} here · ${Math.round(net.rtt)}ms`
     : (online === false ? 'alone' : '');
 
   // The puddles cannot be in their own reflection, and neither the rain nor the
@@ -409,6 +424,6 @@ Object.assign(window, {
     applyTimeOfDay(dayT);
   },
   setWeather: (type) => weather.force(type),
-  reflection, puddles, sim, net, remotes,
+  reflection, puddles, sim, net, remotes, chat,
   weather,
 });
