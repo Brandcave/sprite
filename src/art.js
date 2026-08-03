@@ -48,6 +48,11 @@ export const PALETTE = {
   B: '#203868',
   m: '#f8f8f8',         // white
   e: '#404048',         // shoe / dark
+  // npc villager: straw hat + teal shirt, so they never get mistaken for the hero
+  t: '#f0d878',         // straw, lit
+  L: '#c8a848',         // straw, weave / shade
+  x: '#3aa08a',         // shirt teal
+  X: '#1f6b5e',
 };
 
 // ---------------------------------------------------------------- tile art
@@ -579,6 +584,173 @@ export const HERO = {
   up: [HERO_UP_A, HERO_UP_B],
   left: [HERO_LEFT_A, HERO_LEFT_B],
   right: [HERO_RIGHT_A, HERO_RIGHT_B],
+};
+
+
+// ------------------------------------------------------------------- npc art
+// Same rules as the hero — 16x16, one bitmap per facing, two walk frames, hard
+// outline, a handful of inked colours — so the two read as the same cast. The
+// silhouette is what separates them: a wide straw brim instead of a cap, and a
+// stockier body. That is a villager you can pick out of a crowd at a glance,
+// which is the whole job of an NPC sprite at this size.
+
+const NPC_DOWN_A = [
+  '.....kkkkkk.....',
+  '....kttttttk....',
+  '...kttLttLttk...',
+  'kLLLLLLLLLLLLLLk',
+  '....kssssssk....',
+  '....kskssksk....',
+  '....kssssssk....',
+  '.kskxxxxxxxxksk.',
+  '.kskxXxxxxXxksk.',
+  '.kssxxxxxxxxssk.',
+  '..kkPPPPPPPPkk..',
+  '..kPPPPPPPPPPk..',
+  '..ksssk..ksssk..',
+  '..ksssk..ksssk..',
+  '..keeek..keeek..',
+  '...kkk....kkk...',
+];
+
+const NPC_DOWN_B = [
+  '.....kkkkkk.....',
+  '....kttttttk....',
+  '...kttLttLttk...',
+  'kLLLLLLLLLLLLLLk',
+  '....kssssssk....',
+  '....kskssksk....',
+  '....kssssssk....',
+  '.kskxxxxxxxxksk.',
+  '.kskxXxxxxXxksk.',
+  '.kssxxxxxxxxssk.',
+  '..kkPPPPPPPPkk..',
+  '..kPPPPPPPPPPk..',
+  '...ksssk..ksssk.',
+  '...ksssk..ksssk.',
+  '...keeek..keeek.',
+  '....kkk....kkk..',
+];
+
+const NPC_UP_A = [
+  '.....kkkkkk.....',
+  '....kttttttk....',
+  '...kttLttLttk...',
+  'kLLLLLLLLLLLLLLk',
+  '....kNNNNNNk....',
+  '....kNNNNNNk....',
+  '....kNNNNNNk....',
+  '.kskxxxxxxxxksk.',
+  '.kskxXxxxxXxksk.',
+  '.kssxxxxxxxxssk.',
+  '..kkPPPPPPPPkk..',
+  '..kPPPPPPPPPPk..',
+  '..ksssk..ksssk..',
+  '..ksssk..ksssk..',
+  '..keeek..keeek..',
+  '...kkk....kkk...',
+];
+
+const NPC_UP_B = [
+  '.....kkkkkk.....',
+  '....kttttttk....',
+  '...kttLttLttk...',
+  'kLLLLLLLLLLLLLLk',
+  '....kNNNNNNk....',
+  '....kNNNNNNk....',
+  '....kNNNNNNk....',
+  '.kskxxxxxxxxksk.',
+  '.kskxXxxxxXxksk.',
+  '.kssxxxxxxxxssk.',
+  '..kkPPPPPPPPkk..',
+  '..kPPPPPPPPPPk..',
+  '...ksssk..ksssk.',
+  '...ksssk..ksssk.',
+  '...keeek..keeek.',
+  '....kkk....kkk..',
+];
+
+const NPC_LEFT_A = [
+  '.....kkkkkk.....',
+  '....kttttttk....',
+  '...kttLttLttk...',
+  'kLLLLLLLLLLLLLLk',
+  '...ksssskNNk....',
+  '...ksksssNNk....',
+  '...ksssskNNk....',
+  '....kxxxxxxxk...',
+  '....ksxxXxxxk...',
+  '....kssxxxxxk...',
+  '....kPPPPPPk....',
+  '....kPPPPPPk....',
+  '.....ksssk......',
+  '.....ksssk......',
+  '.....keeek......',
+  '......kkk.......',
+];
+
+const NPC_LEFT_B = [
+  '.....kkkkkk.....',
+  '....kttttttk....',
+  '...kttLttLttk...',
+  'kLLLLLLLLLLLLLLk',
+  '...ksssskNNk....',
+  '...ksksssNNk....',
+  '...ksssskNNk....',
+  '....kxxxxxxxk...',
+  '....ksxxXxxxk...',
+  '....kssxxxxxk...',
+  '....kPPPPPPk....',
+  '....kPPPPPPk....',
+  '......ksssk.....',
+  '......ksssk.....',
+  '......keeek.....',
+  '.......kkk......',
+];
+
+const NPC_RIGHT_A = [
+  '.....kkkkkk.....',
+  '....kttttttk....',
+  '...kttLttLttk...',
+  'kLLLLLLLLLLLLLLk',
+  '....kNNkssssk...',
+  '....kNNsssksk...',
+  '....kNNkssssk...',
+  '...kxxxxxxxk....',
+  '...kxxxXxxsk....',
+  '...kxxxxxssk....',
+  '....kPPPPPPk....',
+  '....kPPPPPPk....',
+  '......ksssk.....',
+  '......ksssk.....',
+  '......keeek.....',
+  '.......kkk......',
+];
+
+const NPC_RIGHT_B = [
+  '.....kkkkkk.....',
+  '....kttttttk....',
+  '...kttLttLttk...',
+  'kLLLLLLLLLLLLLLk',
+  '....kNNkssssk...',
+  '....kNNsssksk...',
+  '....kNNkssssk...',
+  '...kxxxxxxxk....',
+  '...kxxxXxxsk....',
+  '...kxxxxxssk....',
+  '....kPPPPPPk....',
+  '....kPPPPPPk....',
+  '.....ksssk......',
+  '.....ksssk......',
+  '.....keeek......',
+  '......kkk.......',
+];
+
+export const NPC = {
+  down: [NPC_DOWN_A, NPC_DOWN_B],
+  up: [NPC_UP_A, NPC_UP_B],
+  left: [NPC_LEFT_A, NPC_LEFT_B],
+  right: [NPC_RIGHT_A, NPC_RIGHT_B],
 };
 
 // ----------------------------------------------------------- building parts

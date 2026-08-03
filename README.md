@@ -35,6 +35,12 @@ trunk, seeded per tile so no two are alike, with the leaf colour driven by
 height plus a hash quantised to 2-voxel clumps (per-voxel noise alone reads as
 static rather than as foliage).
 
+`PALM_VOLUME` inverts that: a palm is mostly empty space, so rather than test
+every cell against a field it stamps a curved trunk and a set of drooping fronds
+into a sparse map and looks cells up. Three variants stand along the beach and
+the lagoon shore, and they sway harder and higher than the inland tree — the
+fronds are the point, the trunk barely moves.
+
 **Ground.** Each map tile is a box whose top carries a nearest-filtered 16×16
 canvas texture. Boxes are merged per tile type, so the whole 48×44 island is a
 handful of draw calls. Tile height is per type — the pond curb stands proud of
@@ -53,10 +59,22 @@ world XZ, so gusts roll across the field instead of everything ticking in
 lockstep. Each also gets a matching `customDepthMaterial` — without it the shadow
 pass renders un-swayed geometry and the shadows visibly detach.
 
-**The hero.** A voxel slab that billboards around Y toward the camera, with four
-facings × two walk frames swapped by visibility. It casts a real shadow, so it
-reads as a physical object standing in the world rather than a decal. Movement
-is grid-locked with a short eased step and a mid-step hop.
+**Characters.** A voxel slab that billboards around Y toward the camera, with
+four facings × two walk frames swapped by visibility. It casts a real shadow, so
+it reads as a physical object standing in the world rather than a decal.
+Movement is grid-locked with a short eased step and a mid-step hop.
+
+`src/character.js` owns all of that; the hero and the villagers differ only in
+who picks the next step — input for one, a wander timer for the other. Every
+character claims its destination tile the moment it starts moving, so nothing
+can walk through anything else. Villagers roam a fixed radius around a home tile
+and stop to face you when you come within three tiles.
+
+Their sprites follow the hero's rules — 16×16, hard outline, a handful of inked
+colours — and differ in silhouette rather than detail: a wide straw brim instead
+of a cap. The brim costs a row of face. At the camera's ~46° pitch a brim three
+pixels deep swallows whatever sits directly under it, so the eyes sit on the
+*second* row below the brim, not the first.
 
 **Lighting.** One directional sun (2048² PCF-soft shadow map, frustum pinned to
 the player), a hemisphere light for sky/ground bounce, and a camera-side fill.

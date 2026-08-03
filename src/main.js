@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { buildWorld, MAP_W, MAP_H } from './world.js';
 import { Player } from './player.js';
+import { Npc } from './npc.js';
 
 /* --------------------------------------------------------------- renderer */
 
@@ -92,8 +93,10 @@ function applyTimeOfDay(t) {
   scene.background.setHex(mix(a.bg, b.bg));
   renderer.toneMappingExposure = THREE.MathUtils.lerp(a.exposure, b.exposure, k);
   fill.intensity = 0.7 * (sun.intensity / 3.2) + 0.08;
-  // self-lit floor for the hero, so the backlit sprite still reads
-  player.material.emissiveIntensity = 1.15 * (sun.intensity / 3.2) + 0.12;
+  // self-lit floor for the characters, so the backlit sprites still read
+  const skin = 1.15 * (sun.intensity / 3.2) + 0.12;
+  player.material.emissiveIntensity = skin;
+  for (const npc of npcs) npc.material.emissiveIntensity = skin;
   // a gentler one for foliage — backlit leaves glow, they do not go flat black
   const leaf = 0.72 * (sun.intensity / 3.2) + 0.05;
   for (const mat of foliage) mat.emissiveIntensity = leaf;
@@ -120,6 +123,13 @@ function applyTimeOfDay(t) {
 
 const { animated, lamps, foliage } = buildWorld(scene);
 const player = new Player(scene, 31, 28);
+
+// Villagers. Each keeps to a home tile and a roam radius, so they stay where
+// they were placed — one on the lawn by the path, one up by the houses.
+const npcs = [
+  new Npc(scene, 34, 28, { roam: 3 }),
+  new Npc(scene, 26, 20, { roam: 2 }),
+];
 
 // the hero carries a lantern — it only earns its keep after dusk, but it is the
 // clearest demo that these are real lights and not baked sprite shading
@@ -217,6 +227,7 @@ function frame() {
   applyTimeOfDay(dayT);
 
   player.update(dt, inputDirection(), YAW_INDEX);
+  for (const npc of npcs) npc.update(dt, YAW_INDEX, player);
   updateCamera(dt);
   for (const fn of animated) fn(t);
 
@@ -232,4 +243,4 @@ camTarget.copy(player.position);
 frame();
 
 // convenience for poking at the scene from devtools
-Object.assign(window, { THREE, scene, camera, renderer, player, MAP_W, MAP_H });
+Object.assign(window, { THREE, scene, camera, renderer, player, npcs, MAP_W, MAP_H });
