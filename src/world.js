@@ -33,11 +33,11 @@ const MAP = [
   '~~~~~~___________..T.......,,,,,,....TT.....T___________~~~~~~',
   '~~~~~__Y________....T.....l,,,,,,l..........T____________~~~~~',
   '~~~~~__________............,,,,,,..........o..___________~~~~~',
-  '~~~~~_________T....XXXXXXX.,,,,,,...XXXXXXX...TT__________~~~~',
-  '~~~~__Y______......XXXXXXX.,,,,,,...XXXXXXX.....T_________~~~~',
-  '~~~~________TT.T...XXXXXXX.,,,,,,...XXXXXXX......_________~~~~',
-  '~~~~________.......XXXXXXX.,,,,,,...XXXXXXX.......________~~~~',
-  '~~~~________.T......,,,,,..,,,,,,....,,,,,........________~~~~',
+  '~~~~~_________T..XXXXXXX...,,,,,,...XXXXXXX...TT__________~~~~',
+  '~~~~__Y______....XXXXXXX...,,,,,,...XXXXXXX.....T_________~~~~',
+  '~~~~________TT.T.XXXXXXX...,,,,,,...XXXXXXX......_________~~~~',
+  '~~~~________.....XXXXXXX...,,,,,,...XXXXXXX.......________~~~~',
+  '~~~~________.T....,,,,,....,,,,,,....,,,,,........________~~~~',
   '~~~~___Y____T.........,,,,,,,,,,,,,,,,,,..........________~~~~',
   '~~~_________T......s..,,,,,,cccc,,,,,,,,..s......T________~~~~',
   '~~~_________..........,,,,,c~~~~c,,,,,,...........________~~~~',
@@ -292,9 +292,18 @@ export function buildWorld(scene) {
     }
   }
 
+  let lampMetal = null;
   if (lampGeos.post.length) {
-    const post = new THREE.Mesh(mergeGeometries(lampGeos.post), voxelMaterial());
-    post.castShadow = post.receiveShadow = true;
+    // Painted metal has nowhere to get light from here: the sun is behind the
+    // world, so the faces we can see are all turned away from it, and the lamp
+    // is small enough that its own shadow lands entirely on itself. Both of
+    // those read as black sides on a silver lamp. So: no self-shadowing, and the
+    // same self-lit floor the hero uses (emissive tinted by its own pixels),
+    // faded by the day cycle so it is silver by day and not glowing at night.
+    lampMetal = vertexEmissive(voxelMaterial({ roughness: 0.6 }));
+    const post = new THREE.Mesh(mergeGeometries(lampGeos.post), lampMetal);
+    post.castShadow = true;
+    post.receiveShadow = false;
     post.name = 'props:lamp';
     world.add(post);
 
@@ -343,10 +352,11 @@ export function buildWorld(scene) {
 
   /* --------------------------------------------------------------- buildings */
   // Footprints tagged 'X' in the map; placed by hand so doors face the path.
-  lamps.push(...buildHouse(world, { x: 19, z: 15, w: 7, d: 4, doorAt: 3 }));
+  // both houses sit three tiles back from the road, mirrored about its centre
+  lamps.push(...buildHouse(world, { x: 17, z: 15, w: 7, d: 4, doorAt: 3 }));
   lamps.push(...buildHouse(world, { x: 36, z: 15, w: 7, d: 4, doorAt: 3 }));
 
-  return { world, animated, lamps, foliage };
+  return { world, animated, lamps, foliage, lampMetal };
 }
 
 /* ---------------------------------------------------------------- buildings */

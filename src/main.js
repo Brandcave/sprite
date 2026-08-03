@@ -103,6 +103,8 @@ function applyTimeOfDay(t) {
   // a gentler one for foliage — backlit leaves glow, they do not go flat black
   const leaf = 0.72 * (sun.intensity / 3.2) + 0.05;
   for (const mat of foliage) mat.emissiveIntensity = leaf;
+  // and one for the lamps' painted metal, which the backlit sun never reaches
+  if (lampMetal) lampMetal.emissiveIntensity = 0.6 * (sun.intensity / 3.2) + 0.05;
 
   // 0 in broad daylight, 1 in the dead of night
   const night = THREE.MathUtils.smoothstep(1 - sun.intensity / 1.6, 0, 1);
@@ -126,7 +128,7 @@ function applyTimeOfDay(t) {
 
 /* ------------------------------------------------------------------ world */
 
-const { animated, lamps, foliage } = buildWorld(scene);
+const { animated, lamps, foliage, lampMetal } = buildWorld(scene);
 const player = new Player(scene, 31, 28);
 
 // Villagers. Each keeps to a home tile and a roam radius, so they stay where

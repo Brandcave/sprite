@@ -53,6 +53,13 @@ export const PALETTE = {
   L: '#c8a848',         // straw, weave / shade
   x: '#3aa08a',         // shirt teal
   X: '#1f6b5e',
+  // Painted-silver ironwork, and no outline tone at all. A hard black edge is
+  // right for a 16px character, but on a lamp it swallowed the post; a darker
+  // grey did the same, because the sun is behind the world and every
+  // camera-facing surface is already in shadow. Two light tones is the whole
+  // ramp — the face shading does the rest.
+  V: '#e8ecf4',         // silver, lit
+  Q: '#b4bcc8',         // silver, mid
 };
 
 // ---------------------------------------------------------------- tile art
@@ -407,22 +414,22 @@ export const PROPS = {
   // after dusk while the ironwork stays iron. Extruded thick — at this scale the
   // depth matches the post's width, so it reads as a square post, not a slab.
   lamp: [
-    '.....kkkkkk.....',
-    '.....kyyyyk.....',
-    '.....kyyyyk.....',
-    '.....kyyyyk.....',
-    '.....keeeek.....',
-    '......kKek......',
-    '.......Ke.......',
-    '.......Ke.......',
-    '.......Ke.......',
-    '.......Ke.......',
-    '.......Ke.......',
-    '.......Ke.......',
-    '.......Ke.......',
-    '.......Ke.......',
-    '......kKek......',
-    '.....kkeekk.....',
+    '.....QVVVVQ.....',
+    '.....QyyyyQ.....',
+    '.....VyyyyV.....',
+    '.....QyyyyQ.....',
+    '.....QQQQQQ.....',
+    '......QVVQ......',
+    '.......VQ.......',
+    '.......VQ.......',
+    '.......VQ.......',
+    '.......VQ.......',
+    '.......VQ.......',
+    '.......VQ.......',
+    '.......VQ.......',
+    '.......VQ.......',
+    '......QVVQ......',
+    '.....QVVVVQ.....',
   ],
 
   rock: [
