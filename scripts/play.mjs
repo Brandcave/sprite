@@ -126,13 +126,34 @@ const relay = spawn('node', ['server/index.js'], {
 
 const tunnel = spawn('cloudflared', ['tunnel', '--url', `http://localhost:${PORT}`]);
 
-let announced = false;
+/*
+  Keep listening, rather than announcing once and going deaf.
+
+  A laptop moves — closed at a desk, opened on another network — and the tunnel
+  goes with it. cloudflared reconnects on its own, but a quick tunnel does not
+  keep its name across that: Cloudflare withdraws the old one and issues
+  another. Everything downstream stays up and looks healthy, the relay included,
+  while the address in everybody's link quietly stops resolving.
+
+  Which is the same failure as always — nothing errors, the island simply
+  empties — so the only fix is to notice the new address and say so.
+*/
+let current = null;
 const watch = async (chunk) => {
   const found = String(chunk).match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
-  if (!found || announced) return;
-  announced = true;
+  if (!found) return;
 
   const host = found[0].replace('https://', '');
+  if (host === current) return;
+  const moved = current !== null;
+  current = host;
+
+  if (moved) {
+    console.log(`
+  The tunnel moved — most likely this machine changed network. The old link
+  has stopped working and everybody on it has dropped. New one below.
+`);
+  }
   const link = `${SITE}/?epoch=${room.epoch}&seed=${room.seed}&server=wss://${host}`;
 
   process.stdout.write('\n  waiting for the tunnel to answer');
