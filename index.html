@@ -2,13 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>Voxel Kanto — PoC</title>
     <style>
       :root { color-scheme: dark; }
       * { box-sizing: border-box; }
-      html, body { margin: 0; height: 100%; overflow: hidden; background: #0d1426; }
-      #view { display: block; width: 100vw; height: 100vh; }
+      html, body {
+        margin: 0; height: 100%; overflow: hidden; background: #0d1426;
+        overscroll-behavior: none;      /* no pull-to-refresh mid-walk */
+      }
+      /* dvh, so a phone's disappearing address bar does not crop the island */
+      #view { display: block; width: 100vw; height: 100vh; height: 100dvh; }
 
       .hud {
         position: fixed;
@@ -19,7 +23,8 @@
         pointer-events: none;
       }
       #clockwrap {
-        right: 16px; top: 16px;
+        right: max(16px, env(safe-area-inset-right, 0px));
+        top: max(16px, env(safe-area-inset-top, 0px));
         padding: 10px 16px;
         background: rgba(10, 16, 30, 0.55);
         border: 1px solid rgba(255, 255, 255, 0.14);

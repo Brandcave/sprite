@@ -73,6 +73,7 @@ const CSS = `
 .dlg-entry { display: flex; align-items: baseline; gap: 6px; min-height: 1.5em; }
 .dlg-entry[hidden] { display: none; }
 .dlg-entry .dlg-cur { visibility: visible; animation: dlg-blink 0.9s steps(1, end) infinite; }
+.dlg-root.dlg-typing .dlg-box { pointer-events: auto; }
 .dlg-field {
   flex: 1; min-width: 0; padding: 0;
   font: inherit; color: inherit; background: none; border: 0; outline: none;
@@ -143,7 +144,10 @@ export function message(text, name = null) {
 }
 
 export class Dialogue {
-  constructor(parent = document.body) {
+  constructor(parent = document.body, keys = {}) {
+    // What to call the buttons. A keyboard has Z and Escape, a phone has the
+    // two circles under its right thumb, and the box should say so.
+    this.keys = { confirm: 'Z', send: 'ENTER', cancel: 'ESC', ...keys };
     const style = document.createElement('style');
     style.textContent = CSS;
     document.head.appendChild(style);
@@ -163,13 +167,21 @@ export class Dialogue {
         </div>
         <div class="dlg-more" hidden>▼</div>
       </div>
-      <div class="dlg-keys" hidden><b>ENTER</b> send &nbsp;·&nbsp; <b>ESC</b> walk away</div>`;
+      <div class="dlg-keys" hidden><b>${this.keys.send}</b> send &nbsp;·&nbsp; <b>${this.keys.cancel}</b> walk away</div>`;
+    // Tapping the box puts the caret back. On a phone the keyboard only opens
+    // for a focus that came from a touch, so there has to be something to
+    // touch besides the one-line field itself.
+    root.addEventListener('pointerdown', (e) => {
+      if (!this.composing) return;
+      e.preventDefault();
+      this.el.field.focus();
+    });
     parent.appendChild(root);
 
     const hint = document.createElement('div');
     hint.className = 'dlg-hint';
     hint.hidden = true;
-    hint.innerHTML = '<b>Z</b> talk';
+    hint.innerHTML = `<b>${this.keys.confirm}</b> talk`;
     parent.appendChild(hint);
 
     this.el = {
@@ -215,7 +227,7 @@ export class Dialogue {
     this.el.hint.hidden = !label || this.active;
     if (label && this.hintLabel !== label) {
       this.hintLabel = label;
-      this.el.hint.innerHTML = `<b>Z</b> ${label}`;
+      this.el.hint.innerHTML = `<b>${this.keys.confirm}</b> ${label}`;
     }
   }
 
@@ -254,6 +266,7 @@ export class Dialogue {
     this.el.keys.hidden = false;
     this.el.root.hidden = false;
     this.el.hint.hidden = true;
+    this.el.root.classList.add('dlg-typing');
     this.el.field.value = '';
     this.el.field.focus();
   }
@@ -386,6 +399,7 @@ export class Dialogue {
     this.hideChoices();
     this.el.entry.hidden = true;
     this.el.keys.hidden = true;
+    this.el.root.classList.remove('dlg-typing');
     if (document.activeElement === this.el.field) this.el.field.blur();
     this.el.root.hidden = true;
     const cb = this.onClose;

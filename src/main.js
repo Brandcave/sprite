@@ -13,6 +13,7 @@ import { sim } from './sim.js';
 import { Net } from './net.js';
 import { RemotePlayer } from './remote.js';
 import { PlanarReflection } from './reflection.js';
+import { TOUCH, TouchControls } from './touch.js';
 
 /* --------------------------------------------------------------- renderer */
 
@@ -41,7 +42,10 @@ const SHADOW_DISTANCE = 60;           // how far back the light sits from target
 // 4096 keeps the same texel density the old ±16 box had at 2048. This is the
 // knob to turn if the shadow pass ever costs too much: 2048 halves edge
 // precision to ~0.03 world units, still under half a voxel.
-const SHADOW_MAP_SIZE = 4096;
+// Halved on a phone: the pass is the most expensive thing on screen and 2048
+// still puts the edge precision under half a voxel, which the note above works
+// through. This is the one place the mobile build is not the desktop build.
+const SHADOW_MAP_SIZE = TOUCH ? 2048 : 4096;
 const SHADOW_TEXEL = (SHADOW_SPAN * 2) / SHADOW_MAP_SIZE;
 
 const sun = new THREE.DirectionalLight(0xffffff, 3.0);
@@ -176,7 +180,9 @@ const npcs = [
   new Npc(scene, 26, 20, { index: 1, roam: 2, script: TULA, sprites: VILLAGERS.weaver }),
 ];
 
-const dialogue = new Dialogue();
+const dialogue = new Dialogue(document.body, TOUCH
+  ? { confirm: 'A', send: 'A', cancel: 'B' }
+  : {});
 const chat = new Chat({ net, dialogue });
 
 /* ----------------------------------------------------------------- players */
@@ -217,7 +223,7 @@ net.start();
 // One mirrored render of the scene, shared by every puddle — they all lie on the
 // same plane, so this costs a pass per frame rather than a pass per puddle, and
 // only on the frames where the ground is wet at all.
-const reflection = new PlanarReflection({ height: 0.012, scale: 0.5 });
+const reflection = new PlanarReflection({ height: 0.012, scale: TOUCH ? 0.34 : 0.5 });
 puddles.reflect.value = reflection.texture;
 puddles.matrix.value = reflection.textureMatrix;
 
@@ -289,27 +295,44 @@ const readDay = () => (sim.time / DAY_LENGTH + DAY_PHASE + dayShift + 1) % 1;
 
 const TALK_KEYS = new Set(['KeyZ', 'KeyE', 'Enter', 'Space']);
 
-addEventListener('keydown', (e) => {
+/**
+ * Every press the game understands, whoever sent it. The on-screen controls
+ * synthesise codes and post them here rather than reaching for interact() and
+ * step() themselves, so a rule written once — a conversation swallowing
+ * movement, say — holds for a keyboard and a thumb alike.
+ *
+ * @returns whether the press was the game's, and so should not also be the
+ *          browser's. Only a real key event has anything to preventDefault.
+ */
+function keyDown(code) {
   // A conversation swallows input: arrow keys drive the choice cursor, not the
   // hero, and nothing walks off mid-sentence.
   if (dialogue.active) {
     held.clear();
-    if (dialogue.key(e.code)) e.preventDefault();
-    return;
+    return dialogue.key(code);
   }
-  if (TALK_KEYS.has(e.code)) {
+  if (TALK_KEYS.has(code)) {
     interact();
-    e.preventDefault();
-    return;
+    return true;
   }
-  if (e.code in KEYMAP) {
-    held.add(KEYMAP[e.code]);
-    e.preventDefault();
+  if (code in KEYMAP) {
+    held.add(KEYMAP[code]);
+    return true;
   }
-});
-addEventListener('keyup', (e) => {
-  if (e.code in KEYMAP) held.delete(KEYMAP[e.code]);
-});
+  return false;
+}
+
+function keyUp(code) {
+  if (code in KEYMAP) held.delete(KEYMAP[code]);
+}
+
+addEventListener('keydown', (e) => { if (keyDown(e.code)) e.preventDefault(); });
+addEventListener('keyup', (e) => keyUp(e.code));
+
+// A and B are Enter and Escape because those already mean the right thing in
+// both states the box can be in — Enter confirms a villager's line and sends a
+// written one, Escape closes either — so the buttons need no idea which is up.
+const touch = TOUCH ? new TouchControls({ onKey: keyDown, onKeyUp: keyUp }) : null;
 
 /**
  * Whatever the hero is squarely facing and could act on: a villager to talk to,
@@ -425,6 +448,6 @@ Object.assign(window, {
     applyTimeOfDay(dayT);
   },
   setWeather: (type) => weather.force(type),
-  reflection, puddles, sim, net, remotes, chat,
+  reflection, puddles, sim, net, remotes, chat, touch,
   weather,
 });
