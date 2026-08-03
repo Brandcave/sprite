@@ -43,9 +43,23 @@ deployed apart, and the page is told where to find its relay — `VITE_RELAY` at
 build time, or `?server=wss://...` on the URL, which wins and needs no rebuild.
 
 `npm run play` runs the relay here and puts a public address in front of it, so
-there is nothing to deploy and nothing to pay for. The address is in the link it
-prints; open that and send people what lands in your address bar, since the room
-is minted into the URL on load and `server` is carried along with it.
+there is nothing to deploy and nothing to pay for. It prints one finished link —
+site, room and relay — to send as it is.
+
+The room has to be in that link rather than left to the page. A link without one
+mints a fresh room in every browser that opens it, so handing the same link to
+four people puts the four of them on four separate islands, each of which looks
+perfectly correct and is entirely empty.
+
+The tunnel takes a new address every time it starts, so a link only lasts as
+long as the session that issued it. Passing an old one back goes to the same
+island rather than a new one, keeping its room and replacing its relay:
+
+```bash
+npm run play -- "<yesterday's link>"
+```
+
+Set `SITE` if the page is deployed somewhere other than the default.
 
 If a deployment looks synchronised but empty — same weather, same villagers,
 nobody about — this is why. The world comes from the seed in the URL and agrees
