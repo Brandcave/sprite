@@ -33,8 +33,36 @@ const RESERVED = 210;
 const KEYBOARD = 120;             // a viewport this much shorter is a keyboard
 
 const CSS = `
-body.touch { -webkit-touch-callout: none; }
-body.touch #view, body.touch { touch-action: none; overscroll-behavior: none; }
+/*
+  A phone offers a handful of gestures the game has no use for and which are
+  actively in the way: pinch and double-tap zoom, the long-press callout, the
+  grey flash on tap, and a drag across the d-pad turning into a text selection
+  that leaves the arrows highlighted blue. touch-action turns off the browser's
+  own handling of the touch before it starts, which is the only thing that stops
+  a gesture rather than merely tidying up after it.
+*/
+body.touch, body.touch #view, body.touch .tc-root, body.touch .dlg-root {
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/*
+  Except the one place typing happens. It also has to be at least 16px: a phone
+  zooms the page in on any field smaller than that when it takes focus, which is
+  the most annoying zoom of the lot because it fires every time you start a
+  message. Larger than the lines above it is fine — what you are writing and
+  what somebody said are worth telling apart anyway.
+*/
+body.touch .dlg-field {
+  font-size: max(16px, 1em);
+  touch-action: auto;
+  -webkit-user-select: text;
+  user-select: text;
+}
 
 .tc-root {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 11;
@@ -133,7 +161,30 @@ export class TouchControls {
     for (const btn of root.querySelectorAll('.tc-btn')) this.wireButton(btn);
     root.addEventListener('contextmenu', (e) => e.preventDefault());
 
+    this.refuseGestures();
     this.watchKeyboard();
+  }
+
+  /**
+   * The CSS above covers most of it, but not iOS, which has ignored
+   * user-scalable=no for years — a deliberate accessibility decision, and the
+   * right one for a document. This is not a document: there is nothing to read
+   * closer, and a stray second finger during a conversation leaves the island
+   * magnified with the controls somewhere off the edge of the screen.
+   *
+   * gesture* are Safari's own pinch events. The touchmove guard is for the
+   * browsers that have no such thing, and only ever fires on a second finger —
+   * one finger is the game being played and is left alone.
+   */
+  refuseGestures() {
+    const stop = (e) => e.preventDefault();
+    for (const g of ['gesturestart', 'gesturechange', 'gestureend']) {
+      document.addEventListener(g, stop, { passive: false });
+    }
+    document.addEventListener('touchmove', (e) => {
+      if (e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('dblclick', stop, { passive: false });
   }
 
   /**
