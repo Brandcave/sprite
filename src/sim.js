@@ -66,21 +66,56 @@ const param = (k) => {
   return v === null || v === undefined || v === '' || Number.isNaN(+v) ? null : +v;
 };
 
+/**
+ * Opening the page without a room mints one and writes it into the address bar,
+ * so the URL you are looking at is always the URL to send someone. Without this
+ * two plain tabs are two separate worlds — same island, different weather,
+ * villagers somewhere else entirely — which looks exactly like a bug.
+ */
+function mintRoom() {
+  const epoch = Date.now();
+  const seed = crypto.getRandomValues(new Uint32Array(1))[0];
+  if (params && typeof history !== 'undefined') {
+    params.set('epoch', epoch);
+    params.set('seed', seed);
+    history.replaceState(null, '', `${location.pathname}?${params}`);
+  }
+  return { epoch, seed };
+}
+
+const room = params && (param('epoch') === null || param('seed') === null)
+  ? mintRoom()
+  : { epoch: param('epoch') ?? Date.now(), seed: param('seed') ?? 1 };
+
+const ANCHOR = Date.now() - performance.now();   // wall time at performance.now() === 0
+
 export const sim = {
-  epoch: param('epoch') ?? Date.now(),
-  seed: param('seed') ?? 1,
+  epoch: room.epoch,
+  seed: room.seed >>> 0,
+  offset: 0,        // server clock correction; see configure()
   tick: 0,
   time: 0,          // seconds since the epoch
 
-  /** The server will call this on join; until then a session is its own room. */
-  configure({ epoch, seed } = {}) {
+  /**
+   * The server will call this on join; until then a session is its own room.
+   * `offset` is the correction from a clock handshake — device clocks are only
+   * roughly in step, and the simulation tolerates a second or two of skew but
+   * not thirty, at which point two clients have their villagers walking toward
+   * different destinations.
+   */
+  configure({ epoch, seed, offset } = {}) {
     if (epoch !== undefined) this.epoch = epoch;
     if (seed !== undefined) this.seed = seed >>> 0;
+    if (offset !== undefined) this.offset = offset;
     this.read();
   },
 
   read() {
-    const ms = Date.now() - this.epoch;
+    // Anchored to a monotonic source rather than read fresh from Date.now():
+    // the wall clock can jump — NTP correcting mid-session, or someone setting
+    // it — and a backwards jump would stall the simulation until real time
+    // caught back up, because ticks only ever move forward.
+    const ms = ANCHOR + performance.now() + this.offset - this.epoch;
     this.time = ms / 1000;
     this.tick = Math.floor(ms / TICK_MS);
     return this.tick;
