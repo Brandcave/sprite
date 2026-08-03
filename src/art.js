@@ -31,6 +31,14 @@ export const PALETTE = {
   f: '#e04858',
   F: '#f89098',
   y: '#f8e050',
+  // palm — its own greens and trunk browns so the beach does not read as the
+  // same foliage as the inland woods
+  u: '#c9a066',         // trunk, lit
+  U: '#8a6636',         // trunk, shaded
+  j: '#9ad84e',         // frond highlight
+  J: '#5fb038',         // frond mid
+  a: '#2e7a2e',         // frond shadow / spine
+  z: '#7a4a20',         // coconut
   // skin / character
   s: '#e8a878',
   S: '#c89058',
@@ -194,6 +202,116 @@ export const TREE_VOLUME = {
       if (inTrunk) return hash(x, y, z, 2) < 0.6 ? 'n' : 'N';
       return null;
     };
+  },
+};
+
+/**
+ * Palm trees. Same idea as TREE_VOLUME — a real voxel volume, not an extruded
+ * bitmap — but a palm is mostly negative space, so instead of testing every cell
+ * against a field we stamp the trunk and fronds into a sparse map and look cells
+ * up. A curved trunk plus a handful of drooping fronds is the whole silhouette;
+ * getting the lean and the droop right matters more than any pixel detail.
+ *
+ * `at(seed, variant)` returns the colour lookup volumeGeometry() wants, over a
+ * 24-cubed grid (taller than the 16 the inland tree uses — palms are lanky).
+ */
+const PALM_VARIANTS = {
+  // trunkH: height of the crown, in cells. lean: how far the top drifts sideways.
+  tall:   { trunkH: 17, lean: 3.0, frondL: 8.0, fronds: 8, rise: 3.4, drop: 7.2, nuts: 3 },
+  short:  { trunkH: 11, lean: 1.6, frondL: 9.0, fronds: 9, rise: 2.6, drop: 8.4, nuts: 4 },
+  sprout: { trunkH: 4,  lean: 0.7, frondL: 6.5, fronds: 6, rise: 3.0, drop: 4.6, nuts: 0 },
+};
+
+export const PALM_VOLUME = {
+  size: 24,
+  variants: Object.keys(PALM_VARIANTS),
+
+  at(seed, variant = 'tall') {
+    const S = 24;
+    const CX = 11.5, CZ = 11.5;
+    const V = PALM_VARIANTS[variant] ?? PALM_VARIANTS.tall;
+    const s = seed * 1.7;
+
+    const hash = (x, y, z, k) => {
+      const n = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719 + k * 4.1 + s) * 43758.5453;
+      return n - Math.floor(n);
+    };
+
+    const cells = new Map();
+    const key = (x, y, z) => (y * S + z) * S + x;
+    // Trunk wins over fronds where they overlap: the crown should sit on the
+    // stem, not swallow it.
+    const set = (x, y, z, ch, strong = false) => {
+      x = Math.round(x); y = Math.round(y); z = Math.round(z);
+      if (x < 0 || y < 0 || z < 0 || x >= S || y >= S || z >= S) return;
+      const k = key(x, y, z);
+      if (!strong && cells.has(k)) return;
+      cells.set(k, ch);
+    };
+
+    // ---- trunk: leans off vertical, quadratically, so the base stays planted
+    const leanA = hash(0, 0, 0, 9) * Math.PI * 2;
+    const lx = Math.cos(leanA) * V.lean;
+    const lz = Math.sin(leanA) * V.lean;
+    const trunkAt = (t) => [CX + lx * t * t, V.trunkH * t, CZ + lz * t * t];
+
+    for (let y = 0; y <= V.trunkH; y++) {
+      const t = y / V.trunkH;
+      const [tx, , tz] = trunkAt(t);
+      const r = 2.0 - 0.9 * t;                       // tapers toward the crown
+      for (let dx = -3; dx <= 3; dx++) {
+        for (let dz = -3; dz <= 3; dz++) {
+          if (dx * dx + dz * dz > r * r) continue;
+          // ring scars every few cells give the trunk its stacked-collar look
+          const scar = y % 3 === 0;
+          const lit = dx - dz < 0.5 && !scar;
+          set(tx + dx, y, tz + dz, lit ? 'u' : 'U', true);
+        }
+      }
+    }
+
+    // ---- fronds: a spine arcing up then drooping, with leaflets either side
+    const [hx, hy, hz] = trunkAt(1);
+    const base = hash(0, 1, 0, 4) * Math.PI * 2;
+    for (let f = 0; f < V.fronds; f++) {
+      const a = base + (f / V.fronds) * Math.PI * 2 + (hash(f, 0, 0, 6) - 0.5) * 0.35;
+      const dx = Math.cos(a), dz = Math.sin(a);
+      const len = V.frondL * (0.82 + hash(f, 1, 0, 7) * 0.36);
+      const rise = V.rise * (0.85 + hash(f, 2, 0, 8) * 0.3);
+
+      for (let i = 0; i <= 40; i++) {
+        const t = i / 40;
+        const px = hx + dx * len * t;
+        const pz = hz + dz * len * t;
+        const py = hy + rise * t - V.drop * t * t;
+        if (py < 0.5) break;                          // frond tip hit the sand
+
+        set(px, py, pz, 'a');                         // spine
+        // leaflets fan out perpendicular, widest mid-frond, feathered at the tip
+        const hw = 2.3 * Math.sin(Math.PI * Math.pow(t, 0.75));
+        for (let o = 1; o <= Math.ceil(hw); o++) {
+          for (const sgn of [-1, 1]) {
+            if (o > hw) break;
+            // gaps between leaflets — a solid slab reads as a leaf, not a palm
+            if (hash(i, o, f, sgn > 0 ? 1 : 2) < 0.22) continue;
+            const ox = px - dz * o * sgn;
+            const oz = pz + dx * o * sgn;
+            const oy = py - o * 0.55 * (0.4 + t);     // outer leaflets hang lower
+            const shade = 0.62 - t * 0.3 + hash(i, o, f, 3) * 0.42;
+            set(ox, oy, oz, shade > 0.66 ? 'j' : shade > 0.34 ? 'J' : 'a');
+          }
+        }
+      }
+    }
+
+    // ---- coconuts, tucked under the crown against the trunk
+    for (let n = 0; n < V.nuts; n++) {
+      const a = hash(n, 3, 0, 5) * Math.PI * 2;
+      set(hx + Math.cos(a) * 2.1, hy - 1 - hash(n, 4, 0, 5) * 1.5, hz + Math.sin(a) * 2.1, 'z', true);
+      set(hx + Math.cos(a) * 2.6, hy - 1 - hash(n, 4, 0, 5) * 1.5, hz + Math.sin(a) * 2.6, 'z', true);
+    }
+
+    return (x, y, z) => cells.get(key(x, y, z)) ?? null;
   },
 };
 
