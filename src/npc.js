@@ -1,4 +1,4 @@
-import { NPC } from './art.js';
+import { VILLAGERS } from './art.js';
 import { Character, DIRS } from './character.js';
 
 /*
@@ -12,9 +12,11 @@ import { Character, DIRS } from './character.js';
 const NOTICE = 3;                 // tiles — inside this, the villager watches you
 
 export class Npc extends Character {
-  constructor(scene, tileX, tileZ, { roam = 3, pause = [1.2, 3.4], script = null } = {}) {
+  constructor(scene, tileX, tileZ, {
+    roam = 3, pause = [1.2, 3.4], script = null, sprites = VILLAGERS.straw,
+  } = {}) {
     // a slightly slower cadence than the hero, so the player reads as the quick one
-    super(scene, NPC, tileX, tileZ, { stepTime: 0.26 });
+    super(scene, sprites, tileX, tileZ, { stepTime: 0.26 });
     this.homeX = tileX;
     this.homeZ = tileZ;
     this.roam = roam;

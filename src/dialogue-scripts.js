@@ -7,6 +7,17 @@
   that tries to remember what you picked.
 */
 
+/*
+  Signs, keyed by the tile they stand on — the 's' tiles in the map. A sign with
+  no entry still reads; it just says so, which beats a silent press of the key.
+*/
+export const SIGNS = {
+  '19,21': 'TIDEWATCH VILLAGE. Founded long before anyone thought to write the date down.',
+  '42,21': 'NORTH: the palm shore, and the lookout. SOUTH: the lagoon. Do not swim at night.',
+};
+
+export const WORN_SIGN = 'The paint has worn off. Salt air gets everything eventually.';
+
 export const ANOKA = {
   name: 'Anoka',
   start: 'intro',

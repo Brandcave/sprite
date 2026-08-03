@@ -72,11 +72,14 @@ character claims its destination tile the moment it starts moving, so nothing
 can walk through anything else. Villagers roam a fixed radius around a home tile
 and stop to face you when you come within three tiles.
 
-Their sprites follow the hero's rules — 16×16, hard outline, a handful of inked
-colours — and differ in silhouette rather than detail: a wide straw brim instead
-of a cap. The brim costs a row of face. At the camera's ~46° pitch a brim three
-pixels deep swallows whatever sits directly under it, so the eyes sit on the
-*second* row below the brim, not the first.
+Villager sprites live in `VILLAGERS`, one entry per design, and an NPC picks
+one. They follow the hero's rules — 16×16, hard outline, a handful of inked
+colours — and separate from each other by silhouette rather than detail: one is
+a wide straw brim, the other is hair and a flared hem. The straw brim costs a
+row of face, because at the camera's ~46° pitch a brim three pixels deep
+swallows whatever sits directly under it, so those eyes sit on the *second* row
+below it. The weaver has no legs to swap for her walk frame, so the hem swings a
+pixel instead.
 
 **Talking.** Face a villager and press <kbd>Z</kbd>. `src/dialogue.js` is the box
 — white panel, hard outline, blue inner frame, two lines typed a character at a

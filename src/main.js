@@ -1,10 +1,11 @@
 import * as THREE from 'three';
-import { buildWorld, MAP_W, MAP_H } from './world.js';
+import { buildWorld, tileAt, MAP_W, MAP_H } from './world.js';
 import { Player } from './player.js';
 import { Npc } from './npc.js';
 import { DIRS, characterAt } from './character.js';
-import { Dialogue } from './dialogue.js';
-import { ANOKA, TULA } from './dialogue-scripts.js';
+import { Dialogue, message } from './dialogue.js';
+import { ANOKA, TULA, SIGNS, WORN_SIGN } from './dialogue-scripts.js';
+import { VILLAGERS } from './art.js';
 
 /* --------------------------------------------------------------- renderer */
 
@@ -134,8 +135,8 @@ const player = new Player(scene, 31, 28);
 // Villagers. Each keeps to a home tile and a roam radius, so they stay where
 // they were placed — one on the lawn by the path, one up by the houses.
 const npcs = [
-  new Npc(scene, 34, 28, { roam: 3, script: ANOKA }),
-  new Npc(scene, 26, 20, { roam: 2, script: TULA }),
+  new Npc(scene, 34, 28, { roam: 3, script: ANOKA, sprites: VILLAGERS.straw }),
+  new Npc(scene, 26, 20, { roam: 2, script: TULA, sprites: VILLAGERS.weaver }),
 ];
 
 const dialogue = new Dialogue();
@@ -207,7 +208,7 @@ addEventListener('keydown', (e) => {
     return;
   }
   if (TALK_KEYS.has(e.code)) {
-    talkToFacedNpc();
+    interact();
     e.preventDefault();
     return;
   }
@@ -220,19 +221,32 @@ addEventListener('keyup', (e) => {
   if (e.code in KEYMAP) held.delete(KEYMAP[e.code]);
 });
 
-/** Whoever the hero is squarely facing, if they have something to say. */
-function facedNpc() {
+/**
+ * Whatever the hero is squarely facing and could act on: a villager to talk to,
+ * or a sign to read. One tile ahead, and only while standing still — reaching
+ * mid-step would let you trigger something you have already walked past.
+ */
+function facing() {
   if (player.moving) return null;
   const d = DIRS[(player.facing + YAW_INDEX) % 4];   // screen facing -> world
-  const who = characterAt(player.tileX + d.dx, player.tileZ + d.dz);
-  return who?.script ? who : null;
+  const x = player.tileX + d.dx;
+  const z = player.tileZ + d.dz;
+
+  const who = characterAt(x, z);
+  if (who?.script) return { verb: 'talk', npc: who };
+  if (tileAt(x, z) === 's') return { verb: 'read', sign: `${x},${z}` };
+  return null;
 }
 
-function talkToFacedNpc() {
-  const npc = facedNpc();
-  if (!npc) return;
-  npc.talking = true;
-  dialogue.start(npc.script, () => { npc.talking = false; });
+function interact() {
+  const target = facing();
+  if (!target) return;
+  if (target.npc) {
+    target.npc.talking = true;
+    dialogue.start(target.npc.script, () => { target.npc.talking = false; });
+  } else {
+    dialogue.start(message(SIGNS[target.sign] ?? WORN_SIGN));
+  }
 }
 
 function inputDirection() {
@@ -267,7 +281,7 @@ function frame() {
   player.update(dt, dialogue.active ? -1 : inputDirection(), YAW_INDEX);
   for (const npc of npcs) npc.update(dt, YAW_INDEX, player);
   dialogue.update(dt);
-  dialogue.showHint(!dialogue.active && !!facedNpc());
+  dialogue.showHint(!dialogue.active && facing()?.verb);
   updateCamera(dt);
   for (const fn of animated) fn(t);
 

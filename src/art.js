@@ -776,11 +776,179 @@ const NPC_RIGHT_B = [
   '......kkk.......',
 ];
 
-export const NPC = {
-  down: [NPC_DOWN_A, NPC_DOWN_B],
-  up: [NPC_UP_A, NPC_UP_B],
-  left: [NPC_LEFT_A, NPC_LEFT_B],
-  right: [NPC_RIGHT_A, NPC_RIGHT_B],
+// The second villager. Same rules again, and read by a different silhouette:
+// where the islander is a straw brim, this one is hair and a hem. No split legs
+// at all — the skirt swings a pixel instead, which is what sells her walk.
+
+const W_DOWN_A = [
+  '.....kkkkkk.....',
+  '....knnnnnnk....',
+  '...knnnnnnnnk...',
+  '...knnnnnnnnk...',
+  '...knssssssnk...',
+  '...knskssksnk...',
+  '...knssssssnk...',
+  '...kNnssssnNk...',
+  '..kskbbbbbbksk..',
+  '..kskbBbbBbksk..',
+  '..kssbbbbbbssk..',
+  '..kbbmmmmmmbbk..',
+  '..kbbbbbbbbbbk..',
+  '.kbbbbbbbbbbbbk.',
+  '.kbbbbbbbbbbbbk.',
+  '.kkkeekkkkeekkk.',
+];
+
+const W_DOWN_B = [
+  '.....kkkkkk.....',
+  '....knnnnnnk....',
+  '...knnnnnnnnk...',
+  '...knnnnnnnnk...',
+  '...knssssssnk...',
+  '...knskssksnk...',
+  '...knssssssnk...',
+  '...kNnssssnNk...',
+  '..kskbbbbbbksk..',
+  '..kskbBbbBbksk..',
+  '..kssbbbbbbssk..',
+  '..kbbmmmmmmbbk..',
+  '..kbbbbbbbbbbk..',
+  '..kbbbbbbbbbbbbk',
+  '..kbbbbbbbbbbbbk',
+  '..kkkeekkkkeekkk',
+];
+
+const W_UP_A = [
+  '.....kkkkkk.....',
+  '....knnnnnnk....',
+  '...knnnnnnnnk...',
+  '...knnnnnnnnk...',
+  '...knnnnnnnnk...',
+  '...knnnnnnnnk...',
+  '...kNnnnnnnNk...',
+  '...kNNnnnnNNk...',
+  '..kskbbbbbbksk..',
+  '..kskbBbbBbksk..',
+  '..kssbbbbbbssk..',
+  '..kbbmmmmmmbbk..',
+  '..kbbbbbbbbbbk..',
+  '.kbbbbbbbbbbbbk.',
+  '.kbbbbbbbbbbbbk.',
+  '.kkkeekkkkeekkk.',
+];
+
+const W_UP_B = [
+  '.....kkkkkk.....',
+  '....knnnnnnk....',
+  '...knnnnnnnnk...',
+  '...knnnnnnnnk...',
+  '...knnnnnnnnk...',
+  '...knnnnnnnnk...',
+  '...kNnnnnnnNk...',
+  '...kNNnnnnNNk...',
+  '..kskbbbbbbksk..',
+  '..kskbBbbBbksk..',
+  '..kssbbbbbbssk..',
+  '..kbbmmmmmmbbk..',
+  '..kbbbbbbbbbbk..',
+  '..kbbbbbbbbbbbbk',
+  '..kbbbbbbbbbbbbk',
+  '..kkkeekkkkeekkk',
+];
+
+const W_LEFT_A = [
+  '.....kkkkkk.....',
+  '....knnnnnnk....',
+  '...knnnnnnnnk...',
+  '...knnnnnnnnk...',
+  '...kssssnnk.....',
+  '...kskssnnk.....',
+  '...kssssnNk.....',
+  '....kssnNNk.....',
+  '...kbbbbbbbk....',
+  '...ksbbBbbbk....',
+  '...kssbbbbbk....',
+  '....kmmmmmk.....',
+  '....kbbbbbk.....',
+  '...kbbbbbbbk....',
+  '...kbbbbbbbk....',
+  '....kkeekkk.....',
+];
+
+const W_LEFT_B = [
+  '.....kkkkkk.....',
+  '....knnnnnnk....',
+  '...knnnnnnnnk...',
+  '...knnnnnnnnk...',
+  '...kssssnnk.....',
+  '...kskssnnk.....',
+  '...kssssnNk.....',
+  '....kssnNNk.....',
+  '...kbbbbbbbk....',
+  '...ksbbBbbbk....',
+  '...kssbbbbbk....',
+  '....kmmmmmk.....',
+  '....kbbbbbk.....',
+  '....kbbbbbbbk...',
+  '....kbbbbbbbk...',
+  '.....kkeekkk....',
+];
+
+const W_RIGHT_A = [
+  '.....kkkkkk.....',
+  '....knnnnnnk....',
+  '...knnnnnnnnk...',
+  '...knnnnnnnnk...',
+  '.....knnssssk...',
+  '.....knnssksk...',
+  '.....kNnssssk...',
+  '.....kNNnssk....',
+  '....kbbbbbbbk...',
+  '....kbbbBbbsk...',
+  '....kbbbbbssk...',
+  '.....kmmmmmk....',
+  '.....kbbbbbk....',
+  '....kbbbbbbbk...',
+  '....kbbbbbbbk...',
+  '.....kkkeekk....',
+];
+
+const W_RIGHT_B = [
+  '.....kkkkkk.....',
+  '....knnnnnnk....',
+  '...knnnnnnnnk...',
+  '...knnnnnnnnk...',
+  '.....knnssssk...',
+  '.....knnssksk...',
+  '.....kNnssssk...',
+  '.....kNNnssk....',
+  '....kbbbbbbbk...',
+  '....kbbbBbbsk...',
+  '....kbbbbbssk...',
+  '.....kmmmmmk....',
+  '.....kbbbbbk....',
+  '...kbbbbbbbk....',
+  '...kbbbbbbbk....',
+  '....kkkeekk.....',
+];
+
+/**
+ * Every villager sprite set, by name. An NPC picks one; two of them standing in
+ * the same square metre wearing the same face is the thing this is here to stop.
+ */
+export const VILLAGERS = {
+  straw: {
+    down: [NPC_DOWN_A, NPC_DOWN_B],
+    up: [NPC_UP_A, NPC_UP_B],
+    left: [NPC_LEFT_A, NPC_LEFT_B],
+    right: [NPC_RIGHT_A, NPC_RIGHT_B],
+  },
+  weaver: {
+    down: [W_DOWN_A, W_DOWN_B],
+    up: [W_UP_A, W_UP_B],
+    left: [W_LEFT_A, W_LEFT_B],
+    right: [W_RIGHT_A, W_RIGHT_B],
+  },
 };
 
 // ----------------------------------------------------------- building parts

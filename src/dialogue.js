@@ -108,6 +108,15 @@ function paginate(text) {
   return pages;
 }
 
+/**
+ * A script for one block of text and nothing else — what a sign is. Signs get
+ * no name plate: there is nobody talking, which is the whole difference between
+ * reading something and being told it.
+ */
+export function message(text, name = null) {
+  return { name, start: 'text', nodes: { text: { text } } };
+}
+
 export class Dialogue {
   constructor(parent = document.body) {
     const style = document.createElement('style');
@@ -161,9 +170,16 @@ export class Dialogue {
     return this.shown < this.total;
   }
 
-  /** Show the "press Z" nudge. Ignored while a conversation is up. */
-  showHint(on) {
-    this.el.hint.hidden = !on || this.active;
+  /**
+   * Show the "press Z" nudge, labelled for whatever is in front of you — `talk`
+   * for a villager, `read` for a sign. Falsy hides it, as does an open box.
+   */
+  showHint(label) {
+    this.el.hint.hidden = !label || this.active;
+    if (label && this.hintLabel !== label) {
+      this.hintLabel = label;
+      this.el.hint.innerHTML = `<b>Z</b> ${label}`;
+    }
   }
 
   start(script, onClose = null) {
