@@ -124,7 +124,52 @@ const relay = spawn('node', ['server/index.js'], {
   stdio: ['ignore', 'inherit', 'inherit'],
 });
 
-const tunnel = spawn('cloudflared', ['tunnel', '--url', `http://localhost:${PORT}`]);
+let tunnel = null;
+
+function openTunnel() {
+  tunnel = spawn('cloudflared', ['tunnel', '--url', `http://localhost:${PORT}`]);
+  tunnel.stdout.on('data', watch);
+  tunnel.stderr.on('data', watch);
+}
+
+/*
+  Watch the address rather than the process.
+
+  A quick tunnel comes with no uptime guarantee and says so on the way up, and
+  it does not keep its name when it reconnects — a laptop moving between
+  networks is enough to lose it. Reading cloudflared's output cannot catch that:
+  it prints its address once, at startup, and never mentions it again, so a name
+  withdrawn an hour later is announced by nobody.
+
+  Meanwhile everything here stays up and looks healthy. The relay answers on
+  localhost, the room is intact, the process list is exactly as it should be —
+  and the address in everybody's link has stopped existing. So the only honest
+  check is the one from outside: ask whether the address still answers, and when
+  it stops, throw the tunnel away and take a new one. A fresh process always
+  announces itself, which is what makes the new address visible at all.
+*/
+function guardTunnel() {
+  let misses = 0;
+  setInterval(async () => {
+    if (!current) return;
+    let alive = false;
+    try {
+      alive = await serving(current);
+    } catch {
+      alive = false;
+    }
+    if (alive) {
+      misses = 0;
+      return;
+    }
+    if (++misses < 2) return;       // one miss is a blip; two is gone
+    misses = 0;
+    console.log('\n  the address stopped answering — taking a new one\n');
+    current = null;
+    tunnel?.kill();
+    openTunnel();
+  }, 30000);
+}
 
 /*
   Keep listening, rather than announcing once and going deaf.
@@ -150,8 +195,8 @@ const watch = async (chunk) => {
 
   if (moved) {
     console.log(`
-  The tunnel moved — most likely this machine changed network. The old link
-  has stopped working and everybody on it has dropped. New one below.
+  The old link has stopped working and everybody on it has dropped —
+  a quick tunnel does not keep its name when it reconnects. New one below.
 `);
   }
   const link = `${SITE}/?epoch=${room.epoch}&seed=${room.seed}&server=wss://${host}`;
@@ -183,8 +228,8 @@ const watch = async (chunk) => {
   Same island tomorrow:  npm run play -- "${link}"
 `);
 };
-tunnel.stdout.on('data', watch);
-tunnel.stderr.on('data', watch);
+openTunnel();
+guardTunnel();
 
 const stop = () => {
   relay.kill();
