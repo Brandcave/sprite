@@ -59,6 +59,12 @@ island rather than a new one, keeping its room and replacing its relay:
 npm run play -- "<yesterday's link>"
 ```
 
+It waits until the tunnel is actually answering before printing anything, since
+Cloudflare registers a tunnel several seconds before its name resolves at the
+edge — a link handed over the moment it appears can arrive as a 1016 and read to
+whoever clicked it as an ordinary empty island. It also steps past a busy port,
+because 8787 is not always ours.
+
 Set `SITE` if the page is deployed somewhere other than the default.
 
 If a deployment looks synchronised but empty — same weather, same villagers,
