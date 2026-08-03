@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { buildWorld, MAP_W, MAP_H } from './world.js';
 import { Player } from './player.js';
 import { Npc } from './npc.js';
+import { DIRS, characterAt } from './character.js';
+import { Dialogue } from './dialogue.js';
+import { ANOKA, TULA } from './dialogue-scripts.js';
 
 /* --------------------------------------------------------------- renderer */
 
@@ -127,9 +130,11 @@ const player = new Player(scene, 31, 28);
 // Villagers. Each keeps to a home tile and a roam radius, so they stay where
 // they were placed — one on the lawn by the path, one up by the houses.
 const npcs = [
-  new Npc(scene, 34, 28, { roam: 3 }),
-  new Npc(scene, 26, 20, { roam: 2 }),
+  new Npc(scene, 34, 28, { roam: 3, script: ANOKA }),
+  new Npc(scene, 26, 20, { roam: 2, script: TULA }),
 ];
+
+const dialogue = new Dialogue();
 
 // the hero carries a lantern — it only earns its keep after dusk, but it is the
 // clearest demo that these are real lights and not baked sprite shading
@@ -187,7 +192,21 @@ const KEYMAP = {
 const DAY_LENGTH = 24 * 60;           // seconds per full cycle
 let dayT = 0.115;                     // start a little after sunrise
 
+const TALK_KEYS = new Set(['KeyZ', 'KeyE', 'Enter', 'Space']);
+
 addEventListener('keydown', (e) => {
+  // A conversation swallows input: arrow keys drive the choice cursor, not the
+  // hero, and nothing walks off mid-sentence.
+  if (dialogue.active) {
+    held.clear();
+    if (dialogue.key(e.code)) e.preventDefault();
+    return;
+  }
+  if (TALK_KEYS.has(e.code)) {
+    talkToFacedNpc();
+    e.preventDefault();
+    return;
+  }
   if (e.code in KEYMAP) {
     held.add(KEYMAP[e.code]);
     e.preventDefault();
@@ -196,6 +215,21 @@ addEventListener('keydown', (e) => {
 addEventListener('keyup', (e) => {
   if (e.code in KEYMAP) held.delete(KEYMAP[e.code]);
 });
+
+/** Whoever the hero is squarely facing, if they have something to say. */
+function facedNpc() {
+  if (player.moving) return null;
+  const d = DIRS[(player.facing + YAW_INDEX) % 4];   // screen facing -> world
+  const who = characterAt(player.tileX + d.dx, player.tileZ + d.dz);
+  return who?.script ? who : null;
+}
+
+function talkToFacedNpc() {
+  const npc = facedNpc();
+  if (!npc) return;
+  npc.talking = true;
+  dialogue.start(npc.script, () => { npc.talking = false; });
+}
 
 function inputDirection() {
   if (!held.size) return -1;
@@ -226,8 +260,10 @@ function frame() {
   dayT = (dayT + dt / DAY_LENGTH) % 1;
   applyTimeOfDay(dayT);
 
-  player.update(dt, inputDirection(), YAW_INDEX);
+  player.update(dt, dialogue.active ? -1 : inputDirection(), YAW_INDEX);
   for (const npc of npcs) npc.update(dt, YAW_INDEX, player);
+  dialogue.update(dt);
+  dialogue.showHint(!dialogue.active && !!facedNpc());
   updateCamera(dt);
   for (const fn of animated) fn(t);
 
@@ -242,5 +278,8 @@ applyTimeOfDay(dayT);
 camTarget.copy(player.position);
 frame();
 
-// convenience for poking at the scene from devtools
-Object.assign(window, { THREE, scene, camera, renderer, player, npcs, MAP_W, MAP_H });
+// convenience for poking at the scene from devtools; setDay(0.75) jumps to night
+Object.assign(window, {
+  THREE, scene, camera, renderer, player, npcs, dialogue, MAP_W, MAP_H,
+  setDay: (t) => { dayT = t % 1; applyTimeOfDay(dayT); },
+});

@@ -29,6 +29,11 @@ export function tileOccupied(x, z, ignore = null) {
   return who !== undefined && who !== ignore;
 }
 
+/** Whoever is standing on (or walking into) that tile. */
+export function characterAt(x, z) {
+  return occupied.get(keyOf(x, z)) ?? null;
+}
+
 export class Character {
   constructor(scene, sprites, tileX, tileZ, {
     scale = 1.35,             // sprite height in tiles

@@ -14,6 +14,8 @@ npm run dev
 | Input | Action |
 | --- | --- |
 | WASD / arrows | walk, one tile per step |
+| Z / E / Space / Enter | talk to whoever you are facing; advance the text |
+| Arrows, then Z | pick an answer when a villager asks something |
 
 That's the whole input surface. The camera is locked — fixed yaw, pitch and
 distance, following the player — and the clock is not scrubbable.
@@ -75,6 +77,19 @@ colours — and differ in silhouette rather than detail: a wide straw brim inste
 of a cap. The brim costs a row of face. At the camera's ~46° pitch a brim three
 pixels deep swallows whatever sits directly under it, so the eyes sit on the
 *second* row below the brim, not the first.
+
+**Talking.** Face a villager and press <kbd>Z</kbd>. `src/dialogue.js` is the box
+— white panel, hard outline, blue inner frame, two lines typed a character at a
+time — plus the one thing the originals mostly saved for shopkeepers: any line
+can branch into a multiple-choice answer, driven with the arrow keys and picked
+with <kbd>Z</kbd>. A conversation swallows input, so nothing walks off
+mid-sentence, and the villager holds still and keeps looking at you until it
+ends.
+
+Scripts (`src/dialogue-scripts.js`) are plain data: named nodes with text and
+either a `next` or a list of `choices`. Wrapping and pagination happen in the
+box, so a script is written as prose and never has to care where the lines
+break.
 
 **Lighting.** One directional sun (2048² PCF-soft shadow map, frustum pinned to
 the player), a hemisphere light for sky/ground bounce, and a camera-side fill.

@@ -12,13 +12,15 @@ import { Character, DIRS } from './character.js';
 const NOTICE = 3;                 // tiles — inside this, the villager watches you
 
 export class Npc extends Character {
-  constructor(scene, tileX, tileZ, { roam = 3, pause = [1.2, 3.4] } = {}) {
+  constructor(scene, tileX, tileZ, { roam = 3, pause = [1.2, 3.4], script = null } = {}) {
     // a slightly slower cadence than the hero, so the player reads as the quick one
     super(scene, NPC, tileX, tileZ, { stepTime: 0.26 });
     this.homeX = tileX;
     this.homeZ = tileZ;
     this.roam = roam;
     this.pauseRange = pause;
+    this.script = script;
+    this.talking = false;
     this.wait = this.nextWait();
   }
 
@@ -28,17 +30,13 @@ export class Npc extends Character {
   }
 
   update(dt, cameraYawIndex, player) {
-    if (!this.moving) {
+    if (this.talking) {
+      // mid-conversation: hold still and keep looking at whoever is talking
+      this.lookAt(player, cameraYawIndex);
+    } else if (!this.moving) {
       const near = Math.abs(player.tileX - this.tileX) + Math.abs(player.tileZ - this.tileZ) <= NOTICE;
       if (near) {
-        // Look at the player along whichever axis they are further away on;
-        // a diagonal has no sprite, so pick the one that reads.
-        const dx = player.tileX - this.tileX;
-        const dz = player.tileZ - this.tileZ;
-        const dir = Math.abs(dx) > Math.abs(dz)
-          ? (dx > 0 ? 1 : 3)
-          : (dz > 0 ? 2 : 0);
-        this.face(dir, cameraYawIndex);
+        this.lookAt(player, cameraYawIndex);
         this.wait = this.nextWait();     // stand still for as long as you are here
       } else {
         this.wait -= dt;
@@ -51,6 +49,17 @@ export class Npc extends Character {
 
     this.tick(dt);
     this.pivot.rotation.y = (cameraYawIndex * Math.PI) / 2;
+  }
+
+  /**
+   * Turn toward someone, along whichever axis they are further away on — a
+   * diagonal has no sprite, so pick the one that reads.
+   */
+  lookAt(who, cameraYawIndex) {
+    const dx = who.tileX - this.tileX;
+    const dz = who.tileZ - this.tileZ;
+    const dir = Math.abs(dx) > Math.abs(dz) ? (dx > 0 ? 1 : 3) : (dz > 0 ? 2 : 0);
+    this.face(dir, cameraYawIndex);
   }
 
   /** One step in a random direction that stays inside the roam radius. */
