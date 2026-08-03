@@ -1,9 +1,9 @@
-import { HERO } from './art.js';
 import { Character, DIRS } from './character.js';
+import { skinFor } from './identity.js';
 
 export class Player extends Character {
-  constructor(scene, tileX, tileZ) {
-    super(scene, HERO, tileX, tileZ);
+  constructor(scene, tileX, tileZ, id = null) {
+    super(scene, skinFor(id), tileX, tileZ);
     this.isPlayer = true;      // villagers path straight through us; see character.js
   }
 

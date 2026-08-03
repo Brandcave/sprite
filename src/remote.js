@@ -1,11 +1,14 @@
-import { HERO, VILLAGERS } from './art.js';
 import { Character } from './character.js';
+import { skinFor } from './identity.js';
 
 /*
   Somebody else, walking about.
 
   A third kind of Character: the hero is driven by input, a villager by the
-  clock, and this one by the wire. It inherits the same stepping and the same
+  clock, and this one by the wire. They wear the hero's silhouette in their own
+  colours and never a villager's — dressing a player as a villager saves a
+  sprite and costs the player the one distinction they most need to make, which
+  is who in the square is somebody and who is scenery. It inherits the same stepping and the same
   0.19-second cadence, which is what makes remote players look right without any
   prediction or smoothing — because movement is grid-locked and time-boxed by
   design, replaying someone's step *is* the animation. There is nothing to
@@ -25,11 +28,9 @@ import { Character } from './character.js';
   Not worth it to win a tie nobody is trying to win.
 */
 
-const SKINS = [HERO, VILLAGERS.straw, VILLAGERS.weaver];
-
 export class RemotePlayer extends Character {
-  constructor(scene, { id, x, z, f = 2, skin = 0 }) {
-    super(scene, SKINS[skin % SKINS.length], x, z);
+  constructor(scene, { id, x, z, f = 2 }) {
+    super(scene, skinFor(id), x, z);
     this.id = id;
     this.isPlayer = true;        // villagers ignore us, as they do the local hero
     this.facing = f;

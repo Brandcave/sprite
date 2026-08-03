@@ -50,6 +50,17 @@ export const PALETTE = {
   B: '#203868',
   m: '#f8f8f8',         // white
   e: '#404048',         // shoe / dark
+  // Cap and shoes again, in everybody else's colours. The hero bitmaps ink
+  // exactly three things — outline, skin and `r` — so `r` is the only channel a
+  // player's colours can live in, and it happens to be the largest solid block
+  // on the sprite: the whole dome of the cap. See PLAYER_SKINS.
+  '1': '#3878d8',       // blue
+  '2': '#2f8f5a',       // green, deep enough not to sink into the grass
+  '3': '#9858d0',       // violet
+  '4': '#f09030',       // orange
+  '5': '#e8e8f0',       // white
+  '6': '#e858a8',       // pink
+  '7': '#f0d040',       // gold
   // npc villager: straw hat + teal shirt, so they never get mistaken for the hero
   t: '#f0d878',         // straw, lit
   L: '#c8a848',         // straw, weave / shade
@@ -681,6 +692,28 @@ export const HERO = {
   left: [HERO_LEFT_A, HERO_LEFT_B],
   right: [HERO_RIGHT_A, HERO_RIGHT_B],
 };
+
+/** The same bitmaps with the cap and shoes inked a different colour. */
+const recap = (sprites, ink) => Object.fromEntries(
+  Object.entries(sprites).map(([facing, frames]) => [
+    facing, frames.map((rows) => rows.map((row) => row.replaceAll('r', ink))),
+  ]),
+);
+
+/*
+  One per player, chosen by the id the relay hands out — see identity.js.
+
+  It is the same silhouette every time on purpose. A cap and a slim body means a
+  person; a straw brim or a weaver's shawl means a villager who lives here. That
+  distinction is worth more than variety, because it is the one the player reads
+  before they read anything else, and it is what tells them who can be talked
+  *with* rather than talked *at*. Colour is for telling two people apart, which
+  is a question you only ask once you know they are both people.
+*/
+export const PLAYER_SKINS = [
+  HERO,
+  ...['1', '2', '3', '4', '5', '6', '7'].map((ink) => recap(HERO, ink)),
+];
 
 
 // ------------------------------------------------------------------- npc art

@@ -76,9 +76,6 @@ wss.on('connection', (ws, req) => {
     x: null,
     z: null,
     f: 2,
-    // Which villager sprite this player wears, so a room full of people is not
-    // a room full of the same person. Derived from the id, so everyone agrees.
-    skin: nextId % 3,
     steps: 0,
     window: 0,
     says: 0,
@@ -94,7 +91,7 @@ wss.on('connection', (ws, req) => {
     now: Date.now(),
     players: [...room.values()]
       .filter((c) => c.id !== me.id && c.x !== null)
-      .map((c) => ({ id: c.id, x: c.x, z: c.z, f: c.f, skin: c.skin })),
+      .map((c) => ({ id: c.id, x: c.x, z: c.z, f: c.f })),
   });
 
   ws.on('message', (raw) => {
@@ -170,7 +167,7 @@ wss.on('connection', (ws, req) => {
       me.z = z;
       me.f = f;
       if (first) {
-        broadcast(room, { t: 'join', id: me.id, x, z, f, skin: me.skin }, me.id);
+        broadcast(room, { t: 'join', id: me.id, x, z, f }, me.id);
       }
     }
   });

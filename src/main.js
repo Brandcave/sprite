@@ -4,7 +4,8 @@ import { Player } from './player.js';
 import { Npc } from './npc.js';
 import { DIRS, characterAt } from './character.js';
 import { Dialogue, message } from './dialogue.js';
-import { Chat, nameOf } from './chat.js';
+import { Chat } from './chat.js';
+import { nameOf } from './identity.js';
 import { ANOKA, TULA, SIGNS, WORN_SIGN } from './dialogue-scripts.js';
 import { VILLAGERS } from './art.js';
 import { Weather, DAY_LENGTH } from './weather.js';
@@ -162,7 +163,7 @@ const { animated, lamps, foliage, lampMetal, windUniforms, puddles } = buildWorl
 // where everyone spawns on one square is a room where nobody can move.
 const SPAWN = [[31, 28], [30, 28], [32, 28], [31, 27], [30, 27], [32, 27], [31, 29], [30, 29], [32, 29]];
 const spawn = SPAWN[(net.id ?? 0) % SPAWN.length];
-const player = new Player(scene, spawn[0], spawn[1]);
+const player = new Player(scene, spawn[0], spawn[1], net.id);
 
 // Villagers. Each keeps to a home tile and a roam radius, so they stay where
 // they were placed — one on the lawn by the path, one up by the houses.

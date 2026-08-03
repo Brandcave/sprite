@@ -1,3 +1,5 @@
+import { nameOf } from './identity.js';
+
 /*
   Talking to the other people in the room.
 
@@ -14,16 +16,6 @@
   arrives after you have wandered off, which opens the box again, which is
   exactly what being spoken to should do.
 */
-
-// Nobody arrives with a name, so the room hands out one, derived from the id
-// the relay already assigned. Every client works it out the same way, so no
-// name has to travel over the wire.
-const NAMES = [
-  'ROWAN', 'MIRA', 'JUNO', 'ODA', 'PELL', 'SABLE', 'TIKO', 'VESPER',
-  'ASH', 'BRYN', 'CALLA', 'DRIFT', 'ELM', 'FENN', 'GALE', 'HOLLY',
-];
-
-export const nameOf = (id) => (id == null ? 'YOU' : NAMES[(id - 1) % NAMES.length]);
 
 export class Chat {
   constructor({ net, dialogue }) {
