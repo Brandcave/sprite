@@ -414,6 +414,7 @@ function frame() {
   // thrown on screen over the top of whatever was there; this is where it lands.
   chat.drain();
   dialogue.showHint(!dialogue.active && facing()?.verb);
+  touch?.showBack(dialogue.active);
   updateCamera(dt);
   for (const fn of animated) fn(t);
 

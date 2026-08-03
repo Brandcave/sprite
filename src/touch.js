@@ -45,27 +45,46 @@ body.touch #view, body.touch { touch-action: none; overscroll-behavior: none; }
 }
 .tc-root[hidden] { display: none; }
 
-/* Opaque on purpose. A translucent control over a moving 3D scene changes
-   colour as you walk and stops looking like a button you can trust. */
-.tc-pad { display: grid; grid-template: repeat(3, 58px) / repeat(3, 58px); gap: 3px;
+.tc-pad { display: grid; grid-template: repeat(3, 58px) / repeat(3, 58px); gap: 6px;
           pointer-events: auto; touch-action: none; }
+
+/*
+  Frosted glass. The one thing it has to survive is the island moving underneath
+  it — a tint alone would take on the colour of whatever is passing, so the blur
+  does the work of holding a single surface, and the shape is drawn by its rim
+  and its shadow rather than by its fill. Those keep the button legible over the
+  dark of the sea and the glare of the noon path alike.
+*/
 .tc-key {
-  background: #2a3142; border: 3px solid #101820; color: #eaf2ff;
+  background: rgba(20, 28, 48, 0.34);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42),
+              inset 0 -1px 0 rgba(0, 0, 0, 0.22),
+              0 8px 20px rgba(4, 8, 18, 0.35);
+  color: #f4f8ff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 0 rgba(8, 12, 24, 0.55);
   pointer-events: auto; touch-action: none;
+  transition: background 90ms linear, transform 90ms linear, opacity 140ms ease;
 }
-.tc-key[data-on] { background: #3860b8; transform: translateY(3px); box-shadow: 0 1px 0 rgba(8, 12, 24, 0.55); }
-.tc-dir { border-radius: 7px; font-size: 19px; }
-.tc-hub { background: #2a3142; border: 3px solid #101820; border-radius: 4px; }
+.tc-key[data-on] {
+  background: rgba(126, 170, 255, 0.52);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: translateY(2px);
+}
+.tc-dir { border-radius: 16px; font-size: 19px; }
 
 .tc-face { display: grid; gap: 14px; justify-items: center; pointer-events: none; }
 .tc-btn { width: 74px; height: 74px; border-radius: 50%; font-size: 20px; letter-spacing: 0.06em; }
-.tc-a { background: #3860b8; }
-.tc-a[data-on] { background: #6f97e8; }
-.tc-b { background: #d8483c; }
-.tc-b[data-on] { background: #ef7d6f; }
-.tc-cap { font-size: 10px; letter-spacing: 0.14em; opacity: 0.8; margin-top: 4px; }
+.tc-a { background: rgba(56, 96, 184, 0.42); }
+.tc-a[data-on] { background: rgba(132, 176, 255, 0.62); }
+.tc-b { background: rgba(200, 66, 56, 0.40); }
+.tc-b[data-on] { background: rgba(246, 132, 120, 0.62); }
+
+/* B does nothing at all until there is something to back out of, so until then
+   it is not there to be wondered about. */
+.tc-off { opacity: 0; transform: scale(0.82); pointer-events: none; }
 
 /* Keep the text box clear of the thumbs, and out from under the keyboard. */
 body.touch .dlg-root { padding-bottom: ${RESERVED}px; }
@@ -94,11 +113,11 @@ export class TouchControls {
     root.innerHTML = `
       <div class="tc-pad">
         <div></div>${BUTTON('tc-dir', 'ArrowUp', '▲')}<div></div>
-        ${BUTTON('tc-dir', 'ArrowLeft', '◀')}<div class="tc-hub"></div>${BUTTON('tc-dir', 'ArrowRight', '▶')}
+        ${BUTTON('tc-dir', 'ArrowLeft', '◀')}<div></div>${BUTTON('tc-dir', 'ArrowRight', '▶')}
         <div></div>${BUTTON('tc-dir', 'ArrowDown', '▼')}<div></div>
       </div>
       <div class="tc-face">
-        ${BUTTON('tc-btn tc-b', 'Escape', 'B')}
+        ${BUTTON('tc-btn tc-b tc-off', 'Escape', 'B')}
         ${BUTTON('tc-btn tc-a', 'Enter', 'A')}
       </div>`;
     parent.appendChild(root);
@@ -107,12 +126,26 @@ export class TouchControls {
     this.onKey = onKey;
     this.onKeyUp = onKeyUp;
     this.held = null;
+    this.back = root.querySelector('.tc-b');
+    this.backOn = false;
 
     this.wirePad(root.querySelector('.tc-pad'));
     for (const btn of root.querySelectorAll('.tc-btn')) this.wireButton(btn);
     root.addEventListener('contextmenu', (e) => e.preventDefault());
 
     this.watchKeyboard();
+  }
+
+  /**
+   * Show B only while it means something. It sends Escape, which is how you
+   * walk away from what somebody said without answering — and since A always
+   * advances into the reply, B is the only way to decline. Standing in a field
+   * there is nothing to escape from, so it goes.
+   */
+  showBack(on) {
+    if (on === this.backOn) return;
+    this.backOn = on;
+    this.back.classList.toggle('tc-off', !on);
   }
 
   press(key) {
