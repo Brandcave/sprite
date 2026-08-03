@@ -37,7 +37,9 @@ export const PALETTE = {
   U: '#8a6636',         // trunk, shaded
   j: '#9ad84e',         // frond highlight
   J: '#5fb038',         // frond mid
-  a: '#2e7a2e',         // frond shadow / spine
+  a: '#3f9642',         // frond shadow / spine — still the dark tone, but the
+                        // face shading darkens it again on every side face, so
+                        // it is authored lighter than it ends up reading
   z: '#7a4a20',         // coconut
   // skin / character
   s: '#e8a878',
