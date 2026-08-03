@@ -255,8 +255,16 @@ const WIND_CHUNK = /* glsl */ `
   wSway *= wSway;
   float wPhase = transformed.x * 0.55 + transformed.z * 0.42;
   float wGust = 0.65 + 0.35 * sin(uWindTime * 0.31 + wPhase * 0.18);
-  transformed.x += sin(uWindTime * 1.9 + wPhase) * uWindAmp * wSway * wGust;
-  transformed.z += sin(uWindTime * 1.3 + wPhase * 1.7 + 1.3) * uWindAmp * 0.55 * wSway * wGust;
+  float wAmp = uWindAmp * uWindScale;
+  transformed.x += sin(uWindTime * 1.9 + wPhase) * wAmp * wSway * wGust;
+  transformed.z += sin(uWindTime * 1.3 + wPhase * 1.7 + 1.3) * wAmp * 0.55 * wSway * wGust;
+
+  // Steady lean downwind, on top of the quiver. Wind you can only see as
+  // vibration reads as a nervous plant; wind you can see as a bend reads as
+  // weather. Scaled by the material's own amplitude so a palm leans further
+  // than a tuft of grass, and by the same height weight so the base holds.
+  transformed.x += uWindDir.x * uWindBend * wAmp * 2.0 * wSway;
+  transformed.z += uWindDir.y * uWindBend * wAmp * 2.0 * wSway;
 `;
 
 /**
@@ -267,17 +275,24 @@ const WIND_CHUNK = /* glsl */ `
  * uses un-swayed geometry and the shadows visibly detach from the grass.
  */
 export function windMaterial(mat, { amplitude = 0.06, height = 1.0 } = {}) {
+  // uWindTime is driven by the weather clock rather than raw elapsed time, so a
+  // gust can speed the motion up without the phase jumping. uWindScale and
+  // uWindBend are the weather's two handles on every plant at once.
   const uniforms = {
     uWindTime: { value: 0 },
     uWindAmp: { value: amplitude },
     uWindHeight: { value: height },
+    uWindScale: { value: 1 },
+    uWindBend: { value: 0 },
+    uWindDir: { value: new THREE.Vector2(1, 0) },
   };
 
   const patch = (shader) => {
     Object.assign(shader.uniforms, uniforms);
     shader.vertexShader =
-      'uniform float uWindTime;\nuniform float uWindAmp;\nuniform float uWindHeight;\n' +
-      shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n' + WIND_CHUNK);
+      'uniform float uWindTime;\nuniform float uWindAmp;\nuniform float uWindHeight;\n'
+      + 'uniform float uWindScale;\nuniform float uWindBend;\nuniform vec2 uWindDir;\n'
+      + shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n' + WIND_CHUNK);
   };
 
   const key = `wind:${amplitude}:${height}`;

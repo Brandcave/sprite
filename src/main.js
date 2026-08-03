@@ -6,6 +6,7 @@ import { DIRS, characterAt } from './character.js';
 import { Dialogue, message } from './dialogue.js';
 import { ANOKA, TULA, SIGNS, WORN_SIGN } from './dialogue-scripts.js';
 import { VILLAGERS } from './art.js';
+import { Weather } from './weather.js';
 
 /* --------------------------------------------------------------- renderer */
 
@@ -96,6 +97,12 @@ function applyTimeOfDay(t) {
   scene.fog.color.setHex(mix(a.fog, b.fog));
   scene.background.setHex(mix(a.bg, b.bg));
   renderer.toneMappingExposure = THREE.MathUtils.lerp(a.exposure, b.exposure, k);
+
+  // Weather multiplies the clear-sky baseline down *here*, before the fill
+  // light, the self-lit floors and the dusk test read sun.intensity — so a
+  // storm dims all of them, and a heavy one lights the street lamps by itself.
+  weather.applyBase();
+
   fill.intensity = 0.7 * (sun.intensity / 3.2) + 0.08;
   // self-lit floor for the characters, so the backlit sprites still read
   const skin = 1.15 * (sun.intensity / 3.2) + 0.12;
@@ -117,6 +124,9 @@ function applyTimeOfDay(t) {
     glow.intensity = night * 4 * power;
   }
 
+  // lightning last: a strike must not switch the lamps back off
+  weather.applyFlash();
+
   // Sun arcs east -> west; low and raking near dawn/dusk, steep at noon.
   // theta advances a FULL turn per day, so t = 1 lands on exactly the same
   // direction as t = 0 and the cycle wraps with no pop. The fixed negative Z
@@ -129,7 +139,7 @@ function applyTimeOfDay(t) {
 
 /* ------------------------------------------------------------------ world */
 
-const { animated, lamps, foliage, lampMetal } = buildWorld(scene);
+const { animated, lamps, foliage, lampMetal, windUniforms } = buildWorld(scene);
 const player = new Player(scene, 31, 28);
 
 // Villagers. Each keeps to a home tile and a roam radius, so they stay where
@@ -140,6 +150,10 @@ const npcs = [
 ];
 
 const dialogue = new Dialogue();
+
+// Two or three spells of weather a day, rolled fresh each morning. It reads the
+// scene's own lights rather than owning them — see weather.js.
+const weather = new Weather({ scene, renderer, sun, sky, fill, windUniforms });
 
 // the hero carries a lantern — it only earns its keep after dusk, but it is the
 // clearest demo that these are real lights and not baked sprite shading
@@ -276,6 +290,7 @@ function frame() {
   const t = clock.elapsedTime;
 
   dayT = (dayT + dt / DAY_LENGTH) % 1;
+  weather.update(dt, dayT, player.position);
   applyTimeOfDay(dayT);
 
   player.update(dt, dialogue.active ? -1 : inputDirection(), YAW_INDEX);
@@ -300,4 +315,6 @@ frame();
 Object.assign(window, {
   THREE, scene, camera, renderer, player, npcs, dialogue, MAP_W, MAP_H,
   setDay: (t) => { dayT = t % 1; applyTimeOfDay(dayT); },
+  setWeather: (type) => weather.force(type),
+  weather,
 });

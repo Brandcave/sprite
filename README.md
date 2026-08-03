@@ -68,6 +68,40 @@ world XZ, so gusts roll across the field instead of everything ticking in
 lockstep. Each also gets a matching `customDepthMaterial` — without it the shadow
 pass renders un-swayed geometry and the shadows visibly detach.
 
+**Weather.** Two or three spells a day — wind, rain, or a storm with lightning —
+rolled fresh each morning, one per equal slice of the day so they never stack.
+Each ramps in over ten seconds, holds for a minute or two, and ramps out; the
+ramps are most of what makes it read as weather rather than as a switch.
+
+`src/weather.js` is a director owning three numbers: `wind`, `rain` and `flash`.
+Nothing in the scene knows what a storm is — the foliage reads `wind`, the
+particle fields read `rain`, the lighting reads all three. The wind shader gains
+two handles (`uWindScale`, `uWindBend`) and its clock becomes accumulated rather
+than absolute, so a gust can speed the sway up without the phase jumping, and
+everything leans downwind on top of the quiver. Wind you can only see as
+vibration reads as a nervous plant; wind you can see as a bend reads as weather.
+
+Rain and blown grit are the same instanced field with different numbers — one
+draw call each, with the falling, the drifting and the wrapping all done in the
+vertex shader, so the cost never depends on the size of the world. Density is a
+uniform: every particle carries a random, and the ones above the current amount
+collapse off screen.
+
+The lighting layers *on top of* the day cycle rather than replacing it.
+`applyTimeOfDay()` writes the clear-sky baseline for the hour, then the weather
+multiplies it down — before anything derived from `sun.intensity` is computed.
+Rain at dawn is therefore dim orange and rain at noon flat grey, with no
+combinations to author, and a heavy storm drags the sun low enough that the
+existing dusk test trips and the street lamps come on by themselves.
+
+Lightning flashes the hemisphere light and the background, never the sun: the
+sun owns the shadow direction, and flashing it swings every shadow in the scene.
+Its envelope is a hard hit, a fast fall, then a second smaller pop — a single
+linear fade reads as somebody switching a lamp on.
+
+`setWeather('clear' | 'wind' | 'rain' | 'storm')` forces a condition, since
+waiting eight minutes for a scheduled one is not a way to work.
+
 **Characters.** A voxel slab that billboards around Y toward the camera, with
 four facings × two walk frames swapped by visibility. It casts a real shadow, so
 it reads as a physical object standing in the world rather than a decal.

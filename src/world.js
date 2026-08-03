@@ -344,6 +344,7 @@ export function buildWorld(scene) {
     palm: { amplitude: 0.11, height: 4.5 },
   };
   const foliage = [];
+  const windUniforms = [];
 
   for (const [key, geos] of propBatches) {
     const mat = voxelMaterial({ roughness: key === 'flower' ? 0.8 : 0.95 });
@@ -358,7 +359,8 @@ export function buildWorld(scene) {
       vertexEmissive(mat);
       const { uniforms, depthMaterial } = windMaterial(mat, WIND[key]);
       mesh.customDepthMaterial = depthMaterial;
-      animated.push((t) => { uniforms.uWindTime.value = t; });
+      // the weather drives the wind clock — see Weather.update()
+      windUniforms.push(uniforms);
       foliage.push(mat);
     }
 
@@ -371,7 +373,7 @@ export function buildWorld(scene) {
   lamps.push(...buildHouse(world, { x: 17, z: 15, w: 7, d: 4, doorAt: 3 }));
   lamps.push(...buildHouse(world, { x: 36, z: 15, w: 7, d: 4, doorAt: 3 }));
 
-  return { world, animated, lamps, foliage, lampMetal };
+  return { world, animated, lamps, foliage, lampMetal, windUniforms };
 }
 
 /* ---------------------------------------------------------------- buildings */
