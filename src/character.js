@@ -24,9 +24,13 @@ const FACING_NAMES = ['up', 'right', 'down', 'left'];
 const occupied = new Map();
 const keyOf = (x, z) => x * 4096 + z;
 
-export function tileOccupied(x, z, ignore = null) {
+export function tileOccupied(x, z, ignore = null, ignorePlayers = false) {
   const who = occupied.get(keyOf(x, z));
-  return who !== undefined && who !== ignore;
+  if (who === undefined || who === ignore) return false;
+  // Villagers path as though players were not there. If they steered around us
+  // their route would depend on where everyone happened to be standing, which
+  // is precisely the sort of thing that differs from client to client.
+  return !(ignorePlayers && who.isPlayer);
 }
 
 /** Whoever is standing on (or walking into) that tile. */
@@ -95,9 +99,9 @@ export class Character {
   }
 
   /** Can this character stand on that tile right now? */
-  walkable(x, z) {
+  walkable(x, z, ignorePlayers = false) {
     return x >= 0 && z >= 0 && x < MAP_W && z < MAP_H
-      && !isBlocked(x, z) && !tileOccupied(x, z, this);
+      && !isBlocked(x, z) && !tileOccupied(x, z, this, ignorePlayers);
   }
 
   /**
@@ -105,12 +109,12 @@ export class Character {
    * it. Returns whether the step was taken — a refused step still turns, which
    * is what makes bumping a wall read as a nudge rather than a freeze.
    */
-  step(worldDir, cameraYawIndex) {
+  step(worldDir, cameraYawIndex, ignorePlayers = false) {
     this.face(worldDir, cameraYawIndex);
     const d = DIRS[worldDir];
     const nx = this.tileX + d.dx;
     const nz = this.tileZ + d.dz;
-    if (!this.walkable(nx, nz)) return false;
+    if (!this.walkable(nx, nz, ignorePlayers)) return false;
 
     occupied.delete(keyOf(this.tileX, this.tileZ));
     this.fromX = this.tileX;

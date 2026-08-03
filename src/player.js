@@ -4,6 +4,7 @@ import { Character, DIRS } from './character.js';
 export class Player extends Character {
   constructor(scene, tileX, tileZ) {
     super(scene, HERO, tileX, tileZ);
+    this.isPlayer = true;      // villagers path straight through us; see character.js
   }
 
   /** @param inputDir world-space direction index, or -1 for idle */

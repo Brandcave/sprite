@@ -6,7 +6,8 @@ import { DIRS, characterAt } from './character.js';
 import { Dialogue, message } from './dialogue.js';
 import { ANOKA, TULA, SIGNS, WORN_SIGN } from './dialogue-scripts.js';
 import { VILLAGERS } from './art.js';
-import { Weather } from './weather.js';
+import { Weather, DAY_LENGTH } from './weather.js';
+import { sim } from './sim.js';
 import { PlanarReflection } from './reflection.js';
 
 /* --------------------------------------------------------------- renderer */
@@ -140,14 +141,23 @@ function applyTimeOfDay(t) {
 
 /* ------------------------------------------------------------------ world */
 
+// Read the shared clock before anything is built from it: the weather replays
+// the last few minutes on construction, and the villagers replay every step
+// they have taken since the world began.
+sim.read();
+
 const { animated, lamps, foliage, lampMetal, windUniforms, puddles } = buildWorld(scene);
 const player = new Player(scene, 31, 28);
 
 // Villagers. Each keeps to a home tile and a roam radius, so they stay where
 // they were placed — one on the lawn by the path, one up by the houses.
+// `index` is their identity in the shared schedule: it staggers when each one
+// decides, and it seeds what they decide. Order matters — villagers block each
+// other, so who moves first decides who gets the tile — so never reorder this
+// list without meaning to.
 const npcs = [
-  new Npc(scene, 34, 28, { roam: 3, script: ANOKA, sprites: VILLAGERS.straw }),
-  new Npc(scene, 26, 20, { roam: 2, script: TULA, sprites: VILLAGERS.weaver }),
+  new Npc(scene, 34, 28, { index: 0, roam: 3, script: ANOKA, sprites: VILLAGERS.straw }),
+  new Npc(scene, 26, 20, { index: 1, roam: 2, script: TULA, sprites: VILLAGERS.weaver }),
 ];
 
 const dialogue = new Dialogue();
@@ -161,7 +171,10 @@ puddles.matrix.value = reflection.textureMatrix;
 
 // Two or three spells of weather a day, rolled fresh each morning. It reads the
 // scene's own lights rather than owning them — see weather.js.
-const weather = new Weather({ scene, renderer, sun, sky, fill, windUniforms });
+const weather = new Weather({
+  scene, renderer, sun, sky, fill, windUniforms,
+  bounds: { w: MAP_W, h: MAP_H },
+});
 
 // the hero carries a lantern — it only earns its keep after dusk, but it is the
 // clearest demo that these are real lights and not baked sprite shading
@@ -213,11 +226,14 @@ const KEYMAP = {
   ArrowLeft: 3, KeyA: 3,
 };
 
-// One full day/night cycle takes 24 real minutes and runs continuously; there
-// is no way to scrub it. dayT is normalised 0..1 and wraps at 1 -> 0, which the
-// keyframe table and the sun arc are both built to cross seamlessly.
-const DAY_LENGTH = 24 * 60;           // seconds per full cycle
-let dayT = 0.115;                     // start a little after sunrise
+// One full day/night cycle takes 24 real minutes. dayT is normalised 0..1 and
+// wraps at 1 -> 0, which the keyframe table and the sun arc are both built to
+// cross seamlessly. It is *read* from the shared clock rather than accumulated,
+// so two machines on the same epoch are at the same hour without being told.
+const DAY_PHASE = 0.115;              // a fresh world opens a little after sunrise
+let dayShift = 0;                     // setDay() only moves this
+let dayT = DAY_PHASE;
+const readDay = () => (sim.time / DAY_LENGTH + DAY_PHASE + dayShift + 1) % 1;
 
 const TALK_KEYS = new Set(['KeyZ', 'KeyE', 'Enter', 'Space']);
 
@@ -298,8 +314,9 @@ function frame() {
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
 
-  dayT = (dayT + dt / DAY_LENGTH) % 1;
-  weather.update(dt, dayT, player.position);
+  sim.read();
+  dayT = readDay();
+  weather.update(player.position);
   puddles.wet.value = weather.wet;
   applyTimeOfDay(dayT);
 
@@ -332,8 +349,12 @@ frame();
 // convenience for poking at the scene from devtools; setDay(0.75) jumps to night
 Object.assign(window, {
   THREE, scene, camera, renderer, player, npcs, dialogue, MAP_W, MAP_H,
-  setDay: (t) => { dayT = t % 1; applyTimeOfDay(dayT); },
+  setDay: (t) => {
+    dayShift = (t - sim.time / DAY_LENGTH - DAY_PHASE) % 1;
+    dayT = readDay();
+    applyTimeOfDay(dayT);
+  },
   setWeather: (type) => weather.force(type),
-  reflection, puddles,
+  reflection, puddles, sim,
   weather,
 });

@@ -68,6 +68,39 @@ world XZ, so gusts roll across the field instead of everything ticking in
 lockstep. Each also gets a matching `customDepthMaterial` — without it the shadow
 pass renders un-swayed geometry and the shadows visibly detach.
 
+**The shared clock.** Everything that moves on its own — the weather, the
+villagers — is a function of two numbers: a seed, and how many ticks have passed
+since an epoch. Give two machines the same pair and they compute the same island
+without exchanging a message about it. `?epoch=<ms>&seed=<n>` in the URL sets
+them, so two browsers on the same link are already in the same storm watching
+the same villagers take the same paths. That is what a server would hand out;
+it would never need to send the weather itself.
+
+Three rules hold it together, in `src/sim.js`:
+
+- **Nothing that matters accumulates on the render frame.** `x += dt` drifts the
+  moment two clients have different frame rates, or one joins late, or a tab is
+  backgrounded. Anything derivable is derived from the clock outright — which
+  spell is running, how far into its ramp, where every gust is — and the little
+  that is genuinely stateful advances on a fixed 20Hz tick instead.
+- **No `Math.random`, and nothing shared through `Math.sin`.** The world
+  generator's sine hash is fine for laying out trees, since every client builds
+  its own copy of a static map, but `sin` is not bit-identical across JavaScript
+  engines and a shared *timeline* built on it would slowly part company between
+  a Chrome player and a Safari one. The clock's randomness is integer-only.
+- **Prefer self-correcting state to replayed history.** A random walk is a fold
+  over every step ever taken, so two clients agree only if they replay identical
+  history — which a client arriving an hour late cannot. Villagers walk toward a
+  *destination* that is itself a function of the clock, so two copies that start
+  apart converge on it and stay converged. Drift washes out instead of
+  accumulating. Ground wetness has the same property for free: it is a leaky
+  integrator with a minute-long memory.
+
+Two things deliberately stay local. `setWeather()` overrides the schedule for
+you alone — it says so when you call it. And a villager noticing you only turns
+its head; it never affects where they walk, because that would make their path
+depend on where everyone happens to be standing.
+
 **Weather.** Two or three spells a day — wind, rain, or a storm with lightning —
 rolled fresh each morning, one per equal slice of the day so they never stack.
 Each ramps in over ten seconds, holds for a minute or two, and ramps out; the
