@@ -437,6 +437,66 @@ export const PROPS = {
     '.....QVVVVQ.....',
   ],
 
+  // Rain pools. Drawn in the same water the pond and the sea use, so a puddle
+  // reads as the same substance rather than as a grey sticker on the ground —
+  // and so the street lamps glint in them at night the way the lagoon does.
+  puddleWide: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '.....WWWWWW.....',
+    '...WWwwwwwwWW...',
+    '..WwwwwvwwwwwW..',
+    '..WwwwwwwwwwwW..',
+    '..WwwwwwwvwwwW..',
+    '...WWwwwwwwwW...',
+    '.....WWWWWWW....',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+
+  puddleRound: [
+    '................',
+    '................',
+    '................',
+    '......WWWW......',
+    '.....WwwwwW.....',
+    '....WwwvwwwW....',
+    '....WwwwwwwW....',
+    '....WwwwwwwW....',
+    '.....WwwwwwW....',
+    '......WWWWW.....',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+
+  puddleSplit: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '....WWW...WW....',
+    '...WwwwW.WwwW...',
+    '...WwvwwWwwwW...',
+    '....WwwwwwwW....',
+    '.....WWwwwW.....',
+    '.......WWW......',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+
   // Beach litter, laid flat on the sand. No outline: at five pixels across, a
   // ring of dark edge is half the sprite and the whole thing reads as a bit of
   // grit. Bleached shell against sand is contrast enough — the drop shadow and

@@ -334,6 +334,83 @@ export function buildWorld(scene) {
     for (const lamp of lamps) lamp.mat = glassMat;
   }
 
+  /* ----------------------------------------------------------------- puddles */
+  // Every puddle the ground could ever hold is built once, up front, and the
+  // whole field is one mesh. What changes with the weather is a single uniform:
+  // each puddle grows out of its own centre and fades in as the ground wets,
+  // at its own threshold, so they arrive scattered over the shower rather than
+  // all switching on together. Nothing here is rebuilt when it starts raining.
+  const puddleWet = { value: 0 };
+  const PUDDLE_ON = new Set(['.', ',', '_']);   // open ground only
+  const PUDDLES = ['puddleWide', 'puddleRound', 'puddleSplit'];
+  const puddleGeos = [];
+
+  for (let z = 0; z < MAP_H; z++) {
+    for (let x = 0; x < MAP_W; x++) {
+      if (!PUDDLE_ON.has(tileAt(x, z))) continue;
+      if (rand(x, z, 61) >= 1 / 13) continue;
+
+      const kind = PUDDLES[Math.floor(rand(x, z, 63) * PUDDLES.length)];
+      const s = 0.8 + rand(x, z, 65) * 0.7;
+      const g = flatVoxelGeometry(PROPS[kind], { pixel: px * s, depth: 1, lift: 0.012 });
+      g.rotateY(rand(x, z, 67) * Math.PI * 2);
+      const cx = x + 0.5 + (rand(x, z, 69) - 0.5) * 0.4;
+      const cz = z + 0.5 + (rand(x, z, 71) - 0.5) * 0.4;
+      const cy = groundHeight(x, z);
+      g.translate(cx, cy, cz);
+
+      // Where this puddle grows from, and how wet the ground has to get before
+      // it starts. Both are per-vertex because the field is merged into one
+      // mesh and the shader has nowhere else to read them from.
+      const n = g.attributes.position.count;
+      const centre = new Float32Array(n * 3);
+      const seed = new Float32Array(n);
+      const threshold = rand(x, z, 73) * 0.7;
+      for (let i = 0; i < n; i++) {
+        centre[i * 3] = cx;
+        centre[i * 3 + 1] = cy + 0.012;
+        centre[i * 3 + 2] = cz;
+        seed[i] = threshold;
+      }
+      g.setAttribute('aCentre', new THREE.Float32BufferAttribute(centre, 3));
+      g.setAttribute('aSeed', new THREE.Float32BufferAttribute(seed, 1));
+      puddleGeos.push(g);
+    }
+  }
+
+  if (puddleGeos.length) {
+    const mat = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.22,
+      metalness: 0.2,
+      transparent: true,
+      depthWrite: false,
+    });
+    mat.onBeforeCompile = (shader) => {
+      shader.uniforms.uWet = puddleWet;
+      shader.vertexShader =
+        'attribute vec3 aCentre;\nattribute float aSeed;\nuniform float uWet;\nvarying float vGrow;\n'
+        + shader.vertexShader.replace('#include <begin_vertex>', `
+          #include <begin_vertex>
+          vGrow = smoothstep(aSeed, aSeed + 0.35, uWet);
+          transformed = mix(aCentre, transformed, vGrow);
+        `);
+      shader.fragmentShader =
+        'varying float vGrow;\n'
+        + shader.fragmentShader.replace(
+          '#include <color_fragment>',
+          '#include <color_fragment>\n\tdiffuseColor.a *= vGrow;',
+        );
+    };
+    mat.customProgramCacheKey = () => 'puddle';
+
+    const puddles = new THREE.Mesh(mergeGeometries(puddleGeos), mat);
+    puddles.receiveShadow = true;      // but never casts: it is a film of water
+    puddles.renderOrder = 1;
+    puddles.name = 'props:puddles';
+    world.add(puddles);
+  }
+
   // How much each prop type sways, and how tall it is for the sway falloff.
   const WIND = {
     tallgrass: { amplitude: 0.075, height: 0.95 },
@@ -373,7 +450,7 @@ export function buildWorld(scene) {
   lamps.push(...buildHouse(world, { x: 17, z: 15, w: 7, d: 4, doorAt: 3 }));
   lamps.push(...buildHouse(world, { x: 36, z: 15, w: 7, d: 4, doorAt: 3 }));
 
-  return { world, animated, lamps, foliage, lampMetal, windUniforms };
+  return { world, animated, lamps, foliage, lampMetal, windUniforms, puddleWet };
 }
 
 /* ---------------------------------------------------------------- buildings */

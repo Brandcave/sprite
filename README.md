@@ -87,6 +87,17 @@ vertex shader, so the cost never depends on the size of the world. Density is a
 uniform: every particle carries a random, and the ones above the current amount
 collapse off screen.
 
+**Puddles** pool while it rains and linger after it stops, on a separate
+wetness value that lags the rain — water takes a while to gather and longer to
+go. Every puddle the ground could hold is built once at startup and merged into
+a single mesh; nothing is created when the weather turns. What changes is one
+uniform. Each puddle carries its own centre and its own threshold as vertex
+attributes, so it grows out of its own middle and fades in when the ground gets
+wet enough for it — which means they arrive scattered across the shower and,
+better, the shallow ones dry up first while the deep ones are still sitting
+there. They are drawn in the same water as the pond and the sea, so a puddle
+reads as the same substance and the street lamps glint in them at night.
+
 The lighting layers *on top of* the day cycle rather than replacing it.
 `applyTimeOfDay()` writes the clear-sky baseline for the hour, then the weather
 multiplies it down — before anything derived from `sun.intensity` is computed.

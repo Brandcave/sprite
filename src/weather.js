@@ -203,6 +203,7 @@ export class Weather {
 
     this.wind = 0;
     this.rain = 0;
+    this.wet = 0;      // ground wetness: fills under rain, dries slowly after
     this.dark = 0;
     this.flash = 0;
 
@@ -317,6 +318,11 @@ export class Weather {
     // quarter; the whole scene leans with it
     const a = this.clock * 0.013;
     this.dir.set(Math.cos(a), Math.sin(a * 0.7 + 1.1)).normalize();
+
+    // Puddles lag the rain and outlast it — water takes a while to pool, and
+    // longer to go. Filling is scaled by how hard it is coming down.
+    const fill = this.rain > 0.05 ? (dt * this.rain) / 22 : -dt / 55;
+    this.wet = THREE.MathUtils.clamp(this.wet + fill, 0, 1);
 
     this.updateWind(dt);
     this.updateStrikes(dt, p);

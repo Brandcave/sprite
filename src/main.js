@@ -139,7 +139,7 @@ function applyTimeOfDay(t) {
 
 /* ------------------------------------------------------------------ world */
 
-const { animated, lamps, foliage, lampMetal, windUniforms } = buildWorld(scene);
+const { animated, lamps, foliage, lampMetal, windUniforms, puddleWet } = buildWorld(scene);
 const player = new Player(scene, 31, 28);
 
 // Villagers. Each keeps to a home tile and a roam radius, so they stay where
@@ -291,6 +291,7 @@ function frame() {
 
   dayT = (dayT + dt / DAY_LENGTH) % 1;
   weather.update(dt, dayT, player.position);
+  puddleWet.value = weather.wet;
   applyTimeOfDay(dayT);
 
   player.update(dt, dialogue.active ? -1 : inputDirection(), YAW_INDEX);
