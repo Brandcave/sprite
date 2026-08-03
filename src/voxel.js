@@ -259,12 +259,16 @@ const WIND_CHUNK = /* glsl */ `
   transformed.x += sin(uWindTime * 1.9 + wPhase) * wAmp * wSway * wGust;
   transformed.z += sin(uWindTime * 1.3 + wPhase * 1.7 + 1.3) * wAmp * 0.55 * wSway * wGust;
 
-  // Steady lean downwind, on top of the quiver. Wind you can only see as
-  // vibration reads as a nervous plant; wind you can see as a bend reads as
-  // weather. Scaled by the material's own amplitude so a palm leans further
-  // than a tuft of grass, and by the same height weight so the base holds.
-  transformed.x += uWindDir.x * uWindBend * wAmp * 2.0 * wSway;
-  transformed.z += uWindDir.y * uWindBend * wAmp * 2.0 * wSway;
+  // A gust rolling through. uGustPos is the front, in world XZ — and this
+  // geometry is baked in world space, so transformed.xz *is* where the plant
+  // stands. Everything inside the band bows downwind and springs back as the
+  // front passes on, which is the whole of the wind: not a state the world is
+  // in, but a thing that travels across it.
+  float gDist = dot(transformed.xz - uGustPos, uGustDir);
+  float gBand = exp(-(gDist * gDist) / (uGustWidth * uGustWidth));
+  // scaled by the plant's own height, so a palm crown swings a long way and a
+  // tuft of grass only ducks
+  transformed.xz += uGustDir * (gBand * uGustPush * wSway * uWindHeight);
 `;
 
 /**
@@ -276,22 +280,25 @@ const WIND_CHUNK = /* glsl */ `
  */
 export function windMaterial(mat, { amplitude = 0.06, height = 1.0 } = {}) {
   // uWindTime is driven by the weather clock rather than raw elapsed time, so a
-  // gust can speed the motion up without the phase jumping. uWindScale and
-  // uWindBend are the weather's two handles on every plant at once.
+  // gust can speed the motion up without the phase jumping. The uGust* uniforms
+  // are the travelling front — see weather.js.
   const uniforms = {
     uWindTime: { value: 0 },
     uWindAmp: { value: amplitude },
     uWindHeight: { value: height },
     uWindScale: { value: 1 },
-    uWindBend: { value: 0 },
-    uWindDir: { value: new THREE.Vector2(1, 0) },
+    uGustPos: { value: new THREE.Vector2(1e6, 1e6) },   // parked far away
+    uGustDir: { value: new THREE.Vector2(1, 0) },
+    uGustPush: { value: 0 },
+    uGustWidth: { value: 3 },
   };
 
   const patch = (shader) => {
     Object.assign(shader.uniforms, uniforms);
     shader.vertexShader =
       'uniform float uWindTime;\nuniform float uWindAmp;\nuniform float uWindHeight;\n'
-      + 'uniform float uWindScale;\nuniform float uWindBend;\nuniform vec2 uWindDir;\n'
+      + 'uniform float uWindScale;\nuniform vec2 uGustPos;\nuniform vec2 uGustDir;\n'
+      + 'uniform float uGustPush;\nuniform float uGustWidth;\n'
       + shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n' + WIND_CHUNK);
   };
 

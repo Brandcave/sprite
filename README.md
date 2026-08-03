@@ -74,18 +74,26 @@ Each ramps in over ten seconds, holds for a minute or two, and ramps out; the
 ramps are most of what makes it read as weather rather than as a switch.
 
 `src/weather.js` is a director owning three numbers: `wind`, `rain` and `flash`.
-Nothing in the scene knows what a storm is — the foliage reads `wind`, the
-particle fields read `rain`, the lighting reads all three. The wind shader gains
-two handles (`uWindScale`, `uWindBend`) and its clock becomes accumulated rather
-than absolute, so a gust can speed the sway up without the phase jumping, and
-everything leans downwind on top of the quiver. Wind you can only see as
-vibration reads as a nervous plant; wind you can see as a bend reads as weather.
+Nothing in the scene knows what a storm is — the foliage reads `wind`, the rain
+field reads `rain`, the lighting reads all three.
 
-Rain and blown grit are the same instanced field with different numbers — one
-draw call each, with the falling, the drifting and the wrapping all done in the
-vertex shader, so the cost never depends on the size of the world. Density is a
-uniform: every particle carries a random, and the ones above the current amount
-collapse off screen.
+Wind is a thing that travels, not a state the world sits in. You see it as pale
+swooshes that sweep past at knee height and are gone — sporadic when it is calm,
+several at a time in a gale, never a steady stream. Nothing leans permanently
+and there is no ambient haze, because a gust that never ends stops reading as a
+gust. The swoosh that is currently passing also publishes its position to the
+foliage shader as a band, and plants bow inside that band and spring back as the
+front moves on, scaled by their own height so a palm crown swings a long way and
+a tuft of grass only ducks. So the grass reacts to the thing you can actually
+see going past rather than to a global number.
+
+The wind clock is accumulated rather than absolute, so a gale can speed the sway
+up without the phase jumping.
+
+Rain is one instanced field — a single draw call, with the falling, the drifting
+and the wrapping all done in the vertex shader, so the cost never depends on the
+size of the world. Density is a uniform: every drop carries a random, and the
+ones above the current amount collapse off screen.
 
 **Puddles** pool while it rains and linger after it stops, on a separate
 wetness value that lags the rain — water takes a while to gather and longer to
