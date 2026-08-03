@@ -105,11 +105,19 @@ wet enough for it — which means they arrive scattered across the shower and,
 better, the shallow ones dry up first while the deep ones are still sitting
 there.
 
-Where they land is a smooth low-ground field sampled over a few tiles rather
-than a per-tile roll, so wet tiles come in patches: a hollow spanning three or
-four tiles gets three or four overlapping puddles, which read as one large pool
-with a ragged edge instead of a polka dot of identical circles. Deeper hollows
-hold wider water, and hold it sooner and longer.
+They are **one sheet of water, not a scatter of blobs.** A sprite per tile meant
+that wherever several landed together you could see every one of them —
+overlapping rims, doubled alpha, a crowd of circles instead of a pool. So the
+island's water is rasterised into a single grid, eight cells to a tile, and a
+cell is wet when the ground under it is low enough. Neighbouring wet cells are
+just neighbouring quads, so a hollow spanning four tiles comes out as one body
+of water with one edge round it. Low ground is smooth noise over a few tiles
+plus a finer octave that does nothing but rough up the outline.
+
+Each cell's depth is baked in as an attribute and the shader draws only the
+cells under the current water level, so a pool fills from its deepest point
+outwards and drains back to it, and the rim is drawn wherever the waterline
+currently is rather than wherever the art put it.
 
 **They reflect.** All the puddles lie on the same plane, so one mirrored render
 of the scene serves every one of them — a pass per frame rather than a pass per

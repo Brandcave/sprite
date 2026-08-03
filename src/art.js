@@ -437,67 +437,6 @@ export const PROPS = {
     '.....QVVVVQ.....',
   ],
 
-  // Rain pools. Pale, because a puddle seen from above is mostly a piece of
-  // sky lying on the ground — the reflection does the rest of the work, and a
-  // dark bitmap under it just fights the mirror. Drawn in the same water family
-  // as the pond and the sea, so it reads as the same substance.
-  puddleWide: [
-    '................',
-    '................',
-    '................',
-    '................',
-    '.....wwwwww.....',
-    '...wwvvvvvvww...',
-    '..wvvvvvmvvvvw..',
-    '..wvvvvvvvvvvw..',
-    '..wvvvmvvvvvvw..',
-    '...wwvvvvvvvw...',
-    '.....wwwwwww....',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-  ],
-
-  puddleRound: [
-    '................',
-    '................',
-    '................',
-    '......wwww......',
-    '.....wvvvvw.....',
-    '....wvvmvvvw....',
-    '....wvvvvvvw....',
-    '....wvvvvvvw....',
-    '.....wvvvvvw....',
-    '......wwwww.....',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-  ],
-
-  puddleSplit: [
-    '................',
-    '................',
-    '................',
-    '................',
-    '....www...ww....',
-    '...wvvvw.wvvw...',
-    '...wvmvvwvvvw...',
-    '....wvvvvvvw....',
-    '.....wwvvvw.....',
-    '.......www......',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-    '................',
-  ],
-
   // Beach litter, laid flat on the sand. No outline: at five pixels across, a
   // ring of dark edge is half the sprite and the whole thing reads as a bit of
   // grit. Bleached shell against sand is contrast enough — the drop shadow and

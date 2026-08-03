@@ -337,25 +337,29 @@ export function buildWorld(scene) {
   }
 
   /* ----------------------------------------------------------------- puddles */
-  // Every puddle the ground could ever hold is built once, up front, and the
-  // whole field is one mesh. What changes with the weather is a single uniform:
-  // each puddle grows out of its own centre and fades in as the ground wets,
-  // at its own threshold, so they arrive scattered over the shower rather than
-  // all switching on together. Nothing here is rebuilt when it starts raining.
+  // One sheet of water, not a scatter of blobs.
+  //
+  // Puddles were a sprite per tile, and wherever several landed together you
+  // could see every one of them: overlapping rims, doubled alpha, a crowd of
+  // circles instead of a pool. So the island's water is rasterised into a single
+  // grid — eight cells to a tile — and a cell is wet when the ground under it is
+  // low enough. Neighbouring wet cells are just neighbouring quads, so a hollow
+  // spanning four tiles comes out as one body of water with one edge round it.
+  //
+  // Each cell's depth is baked in as an attribute and the shader draws only the
+  // cells that are under the current water level. A pool therefore fills from
+  // its deepest point outwards and drains back to it, and the rim is drawn
+  // wherever the waterline currently is rather than wherever the art put it.
   let puddleMesh = null;
   const puddleWet = { value: 0 };
   const puddleReflect = { value: null };
   const puddleMatrix = { value: new THREE.Matrix4() };
   const PUDDLE_ON = new Set(['.', ',', '_']);   // open ground only
-  const PUDDLES = ['puddleWide', 'puddleRound', 'puddleSplit'];
-  const puddleGeos = [];
+  const CELLS = 8;                              // cells per tile
+  const CELL = 1 / CELLS;
+  const CUT = 0.67;                             // field level that counts as a hollow
 
-  // Where the ground lies low. Smooth over a few tiles rather than picked per
-  // tile, so wet tiles come in patches: a hollow spanning three or four tiles
-  // gets three or four overlapping puddles, which read as one large pool with a
-  // ragged edge instead of a polka dot of identical circles.
-  const lowGround = (x, z) => {
-    const S = 3.4;
+  const noise = (x, z, S, salt) => {
     const gx = x / S;
     const gz = z / S;
     const x0 = Math.floor(gx);
@@ -364,69 +368,81 @@ export function buildWorld(scene) {
     const fz = gz - z0;
     const sx = fx * fx * (3 - 2 * fx);
     const sz = fz * fz * (3 - 2 * fz);
-    const top = lerp(rand(x0, z0, 81), rand(x0 + 1, z0, 81), sx);
-    const bot = lerp(rand(x0, z0 + 1, 81), rand(x0 + 1, z0 + 1, 81), sx);
-    return lerp(top, bot, sz) + (rand(x, z, 83) - 0.5) * 0.06;   // ragged edges
+    const top = lerp(rand(x0, z0, salt), rand(x0 + 1, z0, salt), sx);
+    const bot = lerp(rand(x0, z0 + 1, salt), rand(x0 + 1, z0 + 1, salt), sx);
+    return lerp(top, bot, sz);
   };
 
+  // Broad hollows, plus a finer octave that does nothing but rough up the edges.
+  // White noise here would speckle single cells; this keeps the outline ragged
+  // and still connected.
+  const hollow = (x, z) => noise(x, z, 3.4, 81) * 0.78 + noise(x, z, 1.15, 87) * 0.22;
+
+  const pPos = [];
+  const pNrm = [];
+  const pDepth = [];
+  const pIdx = [];
   for (let z = 0; z < MAP_H; z++) {
     for (let x = 0; x < MAP_W; x++) {
       if (!PUDDLE_ON.has(tileAt(x, z))) continue;
-      const depth = lowGround(x, z) - 0.76;
-      if (depth <= 0) continue;
+      const y = groundHeight(x, z) + 0.012;
+      for (let cz = 0; cz < CELLS; cz++) {
+        for (let cx = 0; cx < CELLS; cx++) {
+          const wx = x + cx * CELL;
+          const wz = z + cz * CELL;
+          const d = hollow(wx + CELL / 2, wz + CELL / 2) - CUT;
+          if (d <= 0) continue;
 
-      const kind = PUDDLES[Math.floor(rand(x, z, 63) * PUDDLES.length)];
-      // deeper hollows hold wider water, and hold it sooner and longer
-      const s = 1.0 + depth * 4.5 + rand(x, z, 65) * 0.3;
-      const g = flatVoxelGeometry(PROPS[kind], { pixel: px * s, depth: 0.25, lift: 0.012, shade: false });
-      g.rotateY(rand(x, z, 67) * Math.PI * 2);
-      const cx = x + 0.5 + (rand(x, z, 69) - 0.5) * 0.5;
-      const cz = z + 0.5 + (rand(x, z, 71) - 0.5) * 0.5;
-      const cy = groundHeight(x, z);
-      // a hair of height jitter: neighbours in a pool overlap, and coplanar
-      // overlapping water z-fights
-      g.translate(cx, cy + rand(x, z, 75) * 0.004, cz);
-
-      // Where this puddle grows from, and how wet the ground has to get before
-      // it starts. Both are per-vertex because the field is merged into one
-      // mesh and the shader has nowhere else to read them from.
-      const n = g.attributes.position.count;
-      const centre = new Float32Array(n * 3);
-      const seed = new Float32Array(n);
-      const threshold = Math.max(0, 0.66 - depth * 2.6);
-      for (let i = 0; i < n; i++) {
-        centre[i * 3] = cx;
-        centre[i * 3 + 1] = cy + 0.012;
-        centre[i * 3 + 2] = cz;
-        seed[i] = threshold;
+          const depth = Math.min(1, d / (1 - CUT));
+          const i = pPos.length / 3;
+          pPos.push(
+            wx, y, wz,
+            wx + CELL, y, wz,
+            wx + CELL, y, wz + CELL,
+            wx, y, wz + CELL,
+          );
+          for (let k = 0; k < 4; k++) {
+            pNrm.push(0, 1, 0);
+            pDepth.push(depth);
+          }
+          // wound so the front face points at the sky: DoubleSide flips the
+          // normal on back faces, and a puddle lit as though it faces the
+          // ground comes out black
+          pIdx.push(i, i + 2, i + 1, i, i + 3, i + 2);
+        }
       }
-      g.setAttribute('aCentre', new THREE.Float32BufferAttribute(centre, 3));
-      g.setAttribute('aSeed', new THREE.Float32BufferAttribute(seed, 1));
-      puddleGeos.push(g);
     }
   }
 
-  if (puddleGeos.length) {
+  if (pIdx.length) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pPos, 3));
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(pNrm, 3));
+    geo.setAttribute('aDepth', new THREE.Float32BufferAttribute(pDepth, 1));
+    geo.setIndex(pIdx);
+    geo.computeBoundingSphere();
+
+    const rim = { value: new THREE.Color(0x5868f0) };
     const mat = new THREE.MeshStandardMaterial({
-      vertexColors: true,
+      color: 0x9aa8ff,
       roughness: 0.12,
       metalness: 0.0,
       transparent: true,
       depthWrite: false,
+      side: THREE.DoubleSide,
     });
     mat.onBeforeCompile = (shader) => {
       shader.uniforms.uWet = puddleWet;
+      shader.uniforms.uRim = rim;
       shader.uniforms.uReflect = puddleReflect;
       shader.uniforms.uReflectMatrix = puddleMatrix;
       shader.vertexShader =
-        'attribute vec3 aCentre;\nattribute float aSeed;\nuniform float uWet;\n'
-        + 'uniform mat4 uReflectMatrix;\nvarying float vGrow;\nvarying vec4 vReflUv;\n'
-        + 'varying float vFresnel;\n'
+        'attribute float aDepth;\nuniform float uWet;\nuniform mat4 uReflectMatrix;\n'
+        + 'varying float vT;\nvarying vec4 vReflUv;\nvarying float vFresnel;\n'
         + shader.vertexShader.replace('#include <begin_vertex>', `
           #include <begin_vertex>
-          vGrow = smoothstep(aSeed, aSeed + 0.35, uWet);
-          transformed = mix(aCentre, transformed, vGrow);
-
+          // how far this cell is below the waterline: deep cells fill first
+          vT = aDepth + uWet - 1.0;
           vec3 wp = (modelMatrix * vec4(transformed, 1.0)).xyz;
           vReflUv = uReflectMatrix * vec4(wp, 1.0);
           // Every puddle faces straight up, so the whole Fresnel term is how
@@ -434,22 +450,27 @@ export function buildWorld(scene) {
           vFresnel = pow(1.0 - clamp(normalize(cameraPosition - wp).y, 0.0, 1.0), 3.0);
         `);
       shader.fragmentShader =
-        'uniform sampler2D uReflect;\nvarying float vGrow;\nvarying vec4 vReflUv;\n'
-        + 'varying float vFresnel;\n'
+        'uniform sampler2D uReflect;\nuniform vec3 uRim;\n'
+        + 'varying float vT;\nvarying vec4 vReflUv;\nvarying float vFresnel;\n'
         + shader.fragmentShader
-          .replace('#include <color_fragment>', '#include <color_fragment>\n\tdiffuseColor.a *= vGrow;')
+          .replace('#include <color_fragment>', `
+            #include <color_fragment>
+            if (vT <= 0.0) discard;                       // dry ground
+            diffuseColor.rgb = mix(uRim, diffuseColor.rgb, smoothstep(0.02, 0.14, vT));
+            diffuseColor.a *= smoothstep(0.0, 0.03, vT);
+          `)
           // Mixed in at the very end, against the already tone-mapped and
           // encoded colour — which is exactly what the reflection pass holds,
           // so both sides of the mix are in the same space.
           .replace('#include <dithering_fragment>', `
             #include <dithering_fragment>
             vec3 refl = texture2D(uReflect, vReflUv.xy / vReflUv.w).rgb;
-            gl_FragColor.rgb = mix(gl_FragColor.rgb, refl, mix(0.5, 0.78, vFresnel) * vGrow);
+            gl_FragColor.rgb = mix(gl_FragColor.rgb, refl, mix(0.5, 0.78, vFresnel));
           `);
     };
     mat.customProgramCacheKey = () => 'puddle';
 
-    puddleMesh = new THREE.Mesh(mergeGeometries(puddleGeos), mat);
+    puddleMesh = new THREE.Mesh(geo, mat);
     // Neither casts nor receives: it is a film of water twelve millimetres above
     // the ground, sharing shadow-map texels with it, and the acne that produces
     // draws hard black seams straight across a pool.
