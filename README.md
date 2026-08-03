@@ -30,6 +30,28 @@ npm run dev        # the game, on :5173
 Open the page, then send somebody the URL out of the address bar. Both of you
 walk around the same island, in the same weather, watching the same villagers.
 
+### Playing with people who are not on your network
+
+```bash
+npm run play       # relay + a tunnel, and the link to send
+```
+
+The deployed page is static files and can live on any CDN. The relay cannot: it
+holds a socket open for as long as somebody is standing in the room, which is
+the one thing a CDN or a serverless function will not do. So the two halves are
+deployed apart, and the page is told where to find its relay — `VITE_RELAY` at
+build time, or `?server=wss://...` on the URL, which wins and needs no rebuild.
+
+`npm run play` runs the relay here and puts a public address in front of it, so
+there is nothing to deploy and nothing to pay for. The address is in the link it
+prints; open that and send people what lands in your address bar, since the room
+is minted into the URL on load and `server` is carried along with it.
+
+If a deployment looks synchronised but empty — same weather, same villagers,
+nobody about — this is why. The world comes from the seed in the URL and agrees
+with itself perfectly without a relay, so the HUD saying `alone` is the only
+thing that will tell you.
+
 Almost nothing goes over the wire. The weather, the day, the villagers and every
 blade of grass are computed from the room's seed and clock — identically on
 every machine, because that is what the shared clock above is for — so the only

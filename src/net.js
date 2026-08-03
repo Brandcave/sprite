@@ -19,10 +19,26 @@ const CONNECT_TIMEOUT = 1500;
 const SYNC_PINGS = 5;             // clock samples on connect
 const RESYNC_MS = 30000;          // and one every half minute after
 
+/*
+  Where the relay lives.
+
+  Not with the game, is the short answer. The page is static files and can go on
+  any CDN, but the relay is a process that holds a socket open for as long as
+  somebody is standing in the room, which is the one thing a static host or a
+  serverless function cannot do. So its address is baked in at build time —
+  VITE_RELAY — and the two halves are deployed separately.
+
+  Unset, it guesses the machine serving the page, which is right in development
+  and wrong everywhere else. That failure is quiet by design: connect() resolves
+  false, the island opens alone, and the HUD says so. Worth knowing when a
+  deployment looks synchronised but empty — the weather and the clock come from
+  the seed in the URL and agree with themselves happily without a server.
+*/
 function defaultUrl() {
   const params = new URLSearchParams(location.search);
   const given = params.get('server');
   if (given) return given;
+  if (import.meta.env.VITE_RELAY) return import.meta.env.VITE_RELAY;
   const secure = location.protocol === 'https:';
   return `${secure ? 'wss' : 'ws'}://${location.hostname}:8787`;
 }
