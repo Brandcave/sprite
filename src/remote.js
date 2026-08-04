@@ -52,7 +52,7 @@ export class RemotePlayer extends Character {
 
   update(dt, cameraYawIndex) {
     this.tick(dt);
-    this.pivot.rotation.y = (cameraYawIndex * Math.PI) / 2;
+    this.billboard();
   }
 
   remove(scene) {

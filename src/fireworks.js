@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { FIREWORK } from './art.js';
 import { voxelGeometry } from './voxel.js';
+import { view } from './character.js';
 
 /*
   A firework show: a dozen shells going up over wherever you are standing, once,
@@ -156,12 +157,27 @@ export class Fireworks {
     this.running = false;
   }
 
-  /** Start a show centred over `at`, a world position. */
+  /*
+    Start a show centred over `at`, a world position.
+
+    The group is parked on that point and every shell placed relative to it,
+    rather than each shell being given an absolute tile. That is not tidying:
+    the whole pattern above — the arc, the three depths, the narrowing of the
+    near shells — is authored against one camera angle, in a space where x is
+    across the screen and z is towards the viewer. Put it in the world and it is
+    only a show from one side; the camera swinging round it during the kiss
+    would watch the arc go edge-on and every shell with it.
+
+    So the group turns with the camera, and the show is presented to whoever is
+    watching it from wherever they are watching. At the resting quarter turn
+    that is the identical picture to before.
+  */
   start(at) {
     this.at = at.clone();
     // Never twice in the same place: the origin is nudged by the position it was
     // fired from, so two shows on the same beach do not overlay each other.
     this.drift = (at.x * 0.37 + at.z * 0.21) % 3 - 1.5;
+    this.group.position.copy(this.at);
     this.t = 0;
     this.running = true;
     this.group.visible = true;
@@ -171,6 +187,9 @@ export class Fireworks {
   update(dt) {
     if (!this.running) return;
     this.t += dt;
+
+    // Face the camera, so the arc is an arc from wherever it is being watched.
+    this.group.rotation.y = view.yaw;
 
     let glow = 0;
     let lit = null;
@@ -197,12 +216,14 @@ export class Fireworks {
       mesh.visible = true;
       mat.opacity = fade;
       mesh.scale.setScalar(open * spec.scale);
+      // Relative to the group, which is sat on the couple and turned to face the
+      // camera — see start().
       mesh.position.set(
-        this.at.x + spec.x + this.drift,
+        spec.x + this.drift,
         // it sags a little as it dies, which is most of what sells it as
         // something that was thrown up there rather than switched on
-        this.at.y + spec.y - k * k * 1.6,
-        this.at.z + spec.z,
+        spec.y - k * k * 1.6,
+        spec.z,
       );
 
       if (fade > glow) { glow = fade; lit = shell; }

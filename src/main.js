@@ -4,7 +4,7 @@ import { goTo, here, inBounds } from './place.js';
 import { buildInterior } from './interior.js';
 import { Player } from './player.js';
 import { Npc, scriptOf } from './npc.js';
-import { DIRS, characterAt } from './character.js';
+import { DIRS, characterAt, view } from './character.js';
 import { Dialogue, message, partOfDay } from './dialogue.js';
 import { Chat } from './chat.js';
 import { Channel } from './channel.js';
@@ -34,7 +34,10 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
 
-const camera = new THREE.PerspectiveCamera(32, 1, 0.5, 200);
+// A long lens, which is most of why the world reads as flat and toy-like from
+// up here. The kiss borrows a wider one for a few seconds — see KISS_CAM.
+const FOV = 32;
+const camera = new THREE.PerspectiveCamera(FOV, 1, 0.5, 200);
 
 /* ----------------------------------------------------------------- lights */
 
@@ -236,7 +239,14 @@ npcs.push(story.amy);
 // the wire — see fireworks.js for why that is the right answer and not a corner
 // being cut.
 const fireworks = new Fireworks(scene);
-story.onFireworks = () => fireworks.start(player.position);
+// The show goes off over the pair of them rather than over him, now that there
+// is a camera swinging round to look at both — a show centred on one of two
+// people standing together is off to one side of the picture the whole time.
+story.onFireworks = () => {
+  const at = player.position.clone().add(story.amy.position).multiplyScalar(0.5);
+  fireworks.start(at);
+  startKissCam(player, story.amy);
+};
 
 /*
   ...and the one thing in the story that is not yours alone. Asking her to watch
@@ -394,14 +404,132 @@ const PITCH = THREE.MathUtils.degToRad(46);
 
 const camOffset = new THREE.Vector3();
 const camTarget = new THREE.Vector3();
+const UP = new THREE.Vector3(0, 1, 0);
+const LOOK = 0.6;                     // how far above the tile the camera aims
+
+/*
+  ...and the one time in the game it is not locked.
+
+  The lock above is not timidity, so breaking it wants a reason and this is the
+  only one there is: she kisses you, the sky goes off, and holding the ordinary
+  framing through that would be the game declining to notice its own ending.
+
+  Authored as keyframes rather than as phases with easing between them, for the
+  same reason the day cycle is — a shot is a series of framings, and the table
+  is the shot. Reading down the `dist` column tells you what it does.
+
+  Four things the numbers are actually solving, all of them learned by looking
+  at it rather than worked out in advance:
+
+  - The lens opens. The resting camera is a long lens, which is what makes the
+    island read as a flat little toy — and it is the wrong lens entirely for
+    standing two feet from somebody. It is also unable to hold the kiss and the
+    sky in one frame at any distance close enough to be a close-up. Widening to
+    the fifties buys back the sky, and the swap doubles as the reason the move
+    feels like a move: a push-in on a widening lens is a different and much
+    stronger thing than a dolly on a fixed one.
+
+  - It comes back *out* while it goes round, and the timings are cut against the
+    show rather than chosen for their own sake. The shells are authored to fill
+    the sky from seventeen tiles back and sixteen up; from nine tiles away they
+    are off the top of the frame at any lens worth having. So the close-up gets
+    the *light* of the fireworks and not the fireworks — the one point light
+    washing colour over two faces, which is the better half of it anyway — and
+    the camera is already coming out by the time there is anything worth seeing.
+
+    Which fixes when: the last shell goes up at 3.62s and dies at 5.12s (see
+    PATTERN in fireworks.js), so the move is wide from 3.8 and stays wide
+    through 5.4, and the whole thing is seven seconds rather than the nine it
+    started as. Nine left the camera orbiting an empty sky for the last two.
+
+  - `spin` is in turns and ends on exactly 1. A full circle lands back on the
+    quarter turn it started from, so the handoff to the locked camera is not a
+    handoff at all — the shot arrives where the camera lives and stops.
+    Unwinding back the way it came would read as a rewind.
+
+  - Nothing here can promise a clear line to the couple. It orbits through three
+    different places, two of which have palms and undergrowth, and a spot picked
+    to be clear from the resting angle is clear from exactly one angle. Rather
+    than pretend otherwise, the wide half of the move is also the high half: at
+    forty-odd degrees it is looking down over the foliage rather than through
+    it, and what does pass through frame passes through the near edge of it and
+    reads as parallax.
+
+  `look` rises through the middle so the couple sit low with the sky above them,
+  which is where the fireworks are.
+*/
+const KISS_CAM = [
+  // seconds | tiles back | degrees up | tiles above them | lens | turns round
+  { t: 0.0, dist: DISTANCE, pitch: 46, look: LOOK, fov: FOV, spin: 0.00 },
+  { t: 1.2, dist: 9.5, pitch: 30, look: 1.30, fov: 48, spin: 0.10 },   // down onto the two of them
+  { t: 2.2, dist: 10.2, pitch: 31, look: 1.50, fov: 50, spin: 0.20 },  // hold, while the sky flashes on them
+  { t: 3.8, dist: 18.0, pitch: 42, look: 1.60, fov: 38, spin: 0.45 },  // out and around: the show arrives
+  { t: 5.4, dist: 22.0, pitch: 45, look: 0.90, fov: 34, spin: 0.75 },  // wide, for the last of it
+  { t: 7.0, dist: DISTANCE, pitch: 46, look: LOOK, fov: FOV, spin: 1.00 },
+];
+const KISS_TIME = KISS_CAM[KISS_CAM.length - 1].t;
+const TURN = Math.PI * 2;
+const smooth = (k) => k * k * (3 - 2 * k);
+
+const kiss = { t: 0, running: false, at: new THREE.Vector3() };
+
+/** Frame the two of them, and start. */
+function startKissCam(a, b) {
+  kiss.at.copy(a.position).add(b.position).multiplyScalar(0.5);
+  kiss.t = 0;
+  kiss.running = true;
+}
+
+/** Where the camera wants to be this frame, or null when it is just following. */
+function kissCam(dt) {
+  if (!kiss.running) return null;
+  kiss.t += dt;
+  if (kiss.t >= KISS_TIME) { kiss.running = false; return null; }
+
+  let i = 0;
+  while (i < KISS_CAM.length - 2 && kiss.t >= KISS_CAM[i + 1].t) i++;
+  const a = KISS_CAM[i];
+  const b = KISS_CAM[i + 1];
+  const k = smooth((kiss.t - a.t) / (b.t - a.t));
+  const mix = (key) => THREE.MathUtils.lerp(a[key], b[key], k);
+  return {
+    at: kiss.at,
+    dist: mix('dist'),
+    pitch: THREE.MathUtils.degToRad(mix('pitch')),
+    look: mix('look'),
+    fov: mix('fov'),
+    yaw: mix('spin') * TURN,
+  };
+}
 
 function updateCamera(dt) {
-  camOffset.set(0, Math.sin(PITCH) * DISTANCE, Math.cos(PITCH) * DISTANCE);
-  camOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), (YAW_INDEX * Math.PI) / 2);
+  const shot = kissCam(dt);
+  const yaw = (YAW_INDEX * Math.PI) / 2 + (shot ? shot.yaw : 0);
 
-  camTarget.lerp(player.position, 1 - Math.pow(0.0015, dt));
+  camOffset.set(
+    0,
+    Math.sin(shot ? shot.pitch : PITCH) * (shot ? shot.dist : DISTANCE),
+    Math.cos(shot ? shot.pitch : PITCH) * (shot ? shot.dist : DISTANCE),
+  );
+  camOffset.applyAxisAngle(UP, yaw);
+
+  // Following the player, or holding on the couple while the shot runs. The
+  // same smoothing does both, and the way back is free: when the shot ends this
+  // is already lerping at whoever it is now given, and the two points are half a
+  // tile apart.
+  camTarget.lerp(shot ? shot.at : player.position, 1 - Math.pow(0.0015, dt));
   camera.position.copy(camTarget).add(camOffset);
-  camera.lookAt(camTarget.x, camTarget.y + 0.6, camTarget.z);
+  camera.lookAt(camTarget.x, camTarget.y + (shot ? shot.look : LOOK), camTarget.z);
+
+  // Only touched while the shot runs, and put back by its last keyframe.
+  const fov = shot ? shot.fov : FOV;
+  if (camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix(); }
+
+  // Everything that turns to face the camera reads these. The angle is exact so
+  // the slabs stay square to the lens; the quarter turn is rounded, because it
+  // picks between four bitmaps and there is no fifth. See character.js.
+  view.yaw = yaw;
+  view.spin = Math.round((yaw - (YAW_INDEX * Math.PI) / 2) / (Math.PI / 2));
 
   // Follow the player, but snap the frustum to whole shadow-map texels — an
   // unsnapped box slides by fractions of a texel and makes every shadow edge
@@ -585,7 +713,16 @@ function frame() {
     before the step rather than after, so nobody ever stands in a doorway — the
     move and the arrival are the same move.
   */
-  const dir = dialogue.active || toolbar.typing || story.busy ? -1 : inputDirection();
+  /*
+    ...and nobody walks during the kiss either. Input is in screen space and is
+    rotated into the world by the camera's quarter turn — which is a constant,
+    and during the shot it is a lie. Pressing up halfway round the orbit would
+    send you off in whatever direction up used to mean, so the answer is not to
+    make the mapping continuous but to not be taking input at all. It is a
+    cutscene; she has just kissed you.
+  */
+  const dir = dialogue.active || toolbar.typing || story.busy || kiss.running
+    ? -1 : inputDirection();
   const through = dir >= 0 && !player.moving ? doorway(dir) : null;
   if (through) through();
 
@@ -618,7 +755,7 @@ function frame() {
   // thrown on screen over the top of whatever was there; this is where it lands.
   chat.drain();
   toolbar.update();
-  dialogue.showHint(!dialogue.active && !story.busy && facing()?.verb);
+  dialogue.showHint(!dialogue.active && !story.busy && !kiss.running && facing()?.verb);
   touch?.showBack(dialogue.active);
   if (minimap) minimap.el.root.hidden = indoors;
   if (!indoors) minimap?.update(player, remotes, npcs, net.id);
@@ -671,4 +808,7 @@ Object.assign(window, {
   reflection, puddles, sim, net, remotes, chat, channel, toolbar, touch, minimap,
   here, ISLAND, HOUSES, doorway,
   weather, story, fireworks,
+  // The kiss shot, for tuning it: `kiss.t` is the second of it you are looking
+  // at, so pinning that in a loop holds the camera on one frame of the move.
+  kiss, startKissCam, KISS_CAM, camTarget, view,
 });

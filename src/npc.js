@@ -241,7 +241,7 @@ export class Npc extends Character {
     }
 
     this.tick(dt);
-    this.pivot.rotation.y = (cameraYawIndex * Math.PI) / 2;
+    this.billboard();
   }
 
   /**

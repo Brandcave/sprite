@@ -16,6 +16,32 @@ export const DIRS = [
   { name: 'left', dx: -1, dz: 0 },
 ];
 
+/*
+  Where the camera is looking from, for everything that has to turn to face it.
+
+  This used to be derived on the spot from the quarter-turn index each character
+  was handed, which was exactly right while the camera could only ever sit at a
+  quarter turn. It cannot any more — see the kiss in main.js — and it takes two
+  numbers rather than one, because a billboarded sprite answers two separate
+  questions and they have different answers:
+
+    yaw    which way to turn the slab, continuous. A sprite is three voxels
+           thick, so a camera even slightly off the quarter turn catches every
+           character in the scene edge-on. This has to track exactly.
+
+    spin   how far the camera has swung from where it normally sits, in whole
+           quarter turns, and therefore which of the four bitmaps to draw.
+           This has to *snap*, because there are only four of them.
+
+  Getting the first without the second is the bug that looks worst: every
+  character turns with the camera and keeps the same face to it the whole way
+  round, so the world reads as the cast rotating on the spot rather than the
+  camera moving around them. With both, the sprite stays square to the lens and
+  you walk round to their side and then their back, four views over the turn,
+  which is the whole trick the technique is for.
+*/
+export const view = { yaw: 0, spin: 0 };
+
 const FACING_NAMES = ['up', 'right', 'down', 'left'];
 
 // Tiles claimed by a character. A walker claims its destination the moment it
@@ -183,6 +209,11 @@ export class Character {
     this.facing = (worldDir - cameraYawIndex + 8) % 4;
   }
 
+  /** Turn the slab to face the camera, wherever it currently is. */
+  billboard() {
+    this.pivot.rotation.y = view.yaw;
+  }
+
   /** Advance the walk interpolation and pick the walk frame. */
   tick(dt) {
     if (this.moving) {
@@ -208,7 +239,22 @@ export class Character {
     this.group.position.set(x, y, z);
     this.pivot.position.y = hop;
 
-    const dirName = FACING_NAMES[this.facing];
+    /*
+      `facing` is which way they point relative to where the camera normally
+      sits; add however far it has swung from there and you have which of the
+      four we are now looking at. Zero at rest, so the drawn frame is the stored
+      frame and nothing about the ordinary game changes.
+
+      Note the sign is the opposite of face()'s, which subtracts its
+      cameraYawIndex. That is not a mistake here and it is not worth changing
+      there: swinging the camera a quarter turn east puts you on a northward
+      walker's right, so the frame index goes up, and this one is checked
+      against the picture — the pair at the fountain face each other through the
+      whole orbit rather than both turning the same way. face()'s parameter has
+      only ever been passed YAW_INDEX, which is 0 and has never moved, so which
+      way it would lean has never once been drawn.
+    */
+    const dirName = FACING_NAMES[(((this.facing + view.spin) % 4) + 4) % 4];
     for (const key of Object.keys(this.frames)) {
       this.frames[key][0].visible = false;
       this.frames[key][1].visible = false;
