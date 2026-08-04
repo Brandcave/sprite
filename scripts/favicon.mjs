@@ -13,10 +13,12 @@ import { HERO, PALETTE } from '../src/art.js';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(HERE, '../public/favicon.svg');
 
-// The head, in sprite coordinates: the cap through the collar, and only as wide
-// as the skull — columns 3..12 clip off the arms, which at this crop would read
-// as lumps growing out of his ears.
-const ROW0 = 0, ROWS = 9;
+// The head, in sprite coordinates: the cap down through the collar, and only as
+// wide as the skull — columns 3..12 clip off the arms, which at this crop would
+// read as lumps growing out of his ears. Stopping a row short of the collar is
+// tempting (it is really shirt, not head) but it cuts the chin off with it, and
+// then the eyes sit on the bottom edge and read as a pair of legs.
+const ROW0 = 0, ROWS = 10;
 const COL0 = 3, COLS = 10;
 
 const PAD = 1;                    // a pixel of air so the outline is not flush

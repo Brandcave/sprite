@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "server": "node server/index.js",
     "play": "node scripts/play.mjs",
-    "favicon": "node scripts/favicon.mjs"
+    "favicon": "node scripts/favicon.mjs",
+    "og": "node scripts/og.mjs"
   },
   "dependencies": {
     "three": "^0.180.0",
