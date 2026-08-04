@@ -11,11 +11,11 @@ import { nameOf } from './identity.js';
   delivered to the pair and to nobody else, so a stream can only ever show what
   its owner was sent.
 
-  Nothing is kept. Each line rises from the field, holds long enough to be read,
-  then lifts and bursts — so the panel is only ever as large as the conversation
-  happening right now, and shrinks back to its icon when it stops. A log that
-  accumulates would end the evening as a wall of text down one side of an island
-  nobody can see any more.
+  Nothing is kept, and not much is shown at once: three lines. Each rises from
+  the field, holds long enough to be read, then lifts and bursts — so the panel
+  is only ever as large as the conversation happening right now, and shrinks
+  back to its icon when it stops. A log that accumulates would end the evening
+  as a wall of text down one side of an island nobody can see any more.
 
   It is not there when you are alone, either. An empty chat box addressed to
   nobody is furniture, and this island is meant to be worth being alone on.
@@ -23,7 +23,7 @@ import { nameOf } from './identity.js';
 
 const LIFE = 14000;           // how long a line stays up
 const POP = 460;              // and how long it takes to burst when it goes
-const STACK = 4;              // most lines on screen at once
+const STACK = 3;              // most lines on screen at once
 const BOUNCE = 420;           // opening and closing the field
 const MAX_TEXT = 120;         // the relay's cap, so the field cannot overrun it
 
@@ -302,7 +302,7 @@ export class Channel {
     this.el.stream.append(bubble);
     setTimeout(() => this.retire(bubble), LIFE);
 
-    // Four at a time; anything older goes early.
+    // Three at a time; anything older goes early.
     const live = [...this.el.stream.children].filter((b) => b.dataset.going === undefined);
     for (const old of live.slice(0, -STACK)) this.retire(old);
   }

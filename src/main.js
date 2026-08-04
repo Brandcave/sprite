@@ -6,7 +6,6 @@ import { DIRS, characterAt } from './character.js';
 import { Dialogue, message, partOfDay } from './dialogue.js';
 import { Chat } from './chat.js';
 import { Channel } from './channel.js';
-import { nameOf } from './identity.js';
 import { ANOKA, TULA, SIGNS, WORN_SIGN } from './dialogue-scripts.js';
 import { VILLAGERS } from './art.js';
 import { Weather, DAY_LENGTH } from './weather.js';
@@ -160,7 +159,7 @@ function applyTimeOfDay(t) {
 // server to answer, this returns false after a moment and the island is yours
 // alone — the game does not need the network, it only makes use of one.
 const net = new Net();
-const online = await net.connect();
+await net.connect();
 sim.read();
 
 const { animated, lamps, foliage, lampMetal, windUniforms, puddles } = buildWorld(scene);
@@ -415,7 +414,6 @@ addEventListener('resize', resize);
 resize();
 
 const hud = document.getElementById('clock');
-const netHud = document.getElementById('net');
 const clock = new THREE.Clock();
 
 function frame() {
@@ -449,10 +447,6 @@ function frame() {
 
   const hours = (dayT * 24 + 6) % 24;
   hud.textContent = `${String(Math.floor(hours)).padStart(2, '0')}:${String(Math.floor((hours % 1) * 60)).padStart(2, '0')}`;
-  netHud.textContent = net.online
-    ? `${nameOf(net.id)} · ${remotes.size + 1} here · ${Math.round(net.rtt)}ms`
-    : (online === false ? 'alone' : '');
-
   // The puddles cannot be in their own reflection, and neither the rain nor the
   // swooshes belong in it — they are in front of the water, not above it.
   if (puddles.mesh && weather.wet > 0.02) {
