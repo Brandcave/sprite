@@ -97,21 +97,24 @@ const muted = Object.fromEntries(
   Object.entries(INK).map(([k, hex]) => [k, mix(hex, BASE, MUTE)]),
 );
 
+/*
+  No frame. The glass the rest of the interface is built from is there to hold
+  something up off the scene — a button, a line of text — and the map does not
+  need holding: it is an opaque block of its own already, and a pane around it
+  only draws a second edge a few pixels outside the first.
+*/
 const CSS = `
 .mm-root {
   position: fixed;
   right: max(16px, env(safe-area-inset-right, 0px));
   bottom: max(16px, env(safe-area-inset-bottom, 0px));
-  z-index: 9; padding: 7px; line-height: 0;
-  background: rgba(20, 28, 48, 0.34);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
-  backdrop-filter: blur(14px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 8px 20px rgba(4, 8, 18, 0.35);
-  border-radius: 12px;
+  z-index: 9; line-height: 0;
   pointer-events: none; user-select: none;
 }
-.mm-root canvas { display: block; border-radius: 5px; image-rendering: pixelated; }
+.mm-root canvas {
+  display: block; border-radius: 10px; image-rendering: pixelated;
+  box-shadow: 0 8px 20px rgba(4, 8, 18, 0.35);
+}
 `;
 
 export class Minimap {
