@@ -164,3 +164,75 @@ export const TULA = {
     },
   },
 };
+
+/*
+  The drifter on the south beach. His opening line carries the same sixteen as
+  the others, but doing double duty: the weather across, and how far through a
+  bottle he is down. Sober and sore at first light, expansive by the afternoon,
+  and by night talking mostly to the sea.
+
+  npc.js works the same curve into how he walks — see drunkAt() — so the state
+  of him is legible before he has said a word, and the line only confirms it.
+*/
+export const BRAM = {
+  name: 'Bram',
+  start: 'intro',
+  nodes: {
+    intro: {
+      text: {
+        clear: {
+          morning: 'Morning. Head\'s a shipwreck. Whatever I said last night, I\'ve decided it didn\'t happen.',
+          noon: 'Ahh, there he is. Sit down — sand\'s warm and I have got nowhere at all to be.',
+          evening: 'Now — now the evening gets going. You\'ll have one? Course you will. Sit.',
+          night: 'Shh. She\'s talking. Sea talks all night and there\'s nobody out here writing it down but me.',
+        },
+        wind: {
+          morning: 'Wind off the water. Clears the head. Doesn\'t mend it. Clears it.',
+          noon: 'Hold your — whoa. Hold your feet, friend. She\'ll have you over, this one.',
+          evening: 'Wind\'s got a lean on it tonight. Or I have. One of the two, and I know which I\'d bet.',
+          night: 'S\'blowing the roof off and I haven\'t got one! Ha. Think about it. Go on.',
+        },
+        rain: {
+          morning: 'Rain. Good. Saves me a wash, and I wasn\'t going to.',
+          noon: 'You\'ll get wet stood there. I\'m already wet. I\'ve committed to it.',
+          evening: 'Rain\'s warm this time of year. Warm rain. That\'s the whole trick of this place, that is.',
+          night: 'Been rained on in worse plashes than this. Lots worse. Couldn\'t name one. Not one.',
+        },
+        storm: {
+          morning: 'Storm\'s up. Everything I own is under that log and it is staying there.',
+          noon: 'Don\'t stand about on open sand in this! Even I know that, and look at the state of me.',
+          evening: 'Whoa. Whoa. She\'s angry tonight. Gets like this. We have an arrangement, her and me.',
+          night: 'Lightning — there! S\'like the sky\'s got the hiccups. Like me. Hic. See?',
+        },
+      },
+      next: 'ask',
+    },
+    ask: {
+      text: 'Here. You look like a man who knows things. Is the tide coming in, or going out?',
+      choices: [
+        { label: 'Coming in', next: 'in' },
+        { label: 'Going out', next: 'out' },
+        { label: 'No idea', next: 'dunno' },
+      ],
+    },
+    in: {
+      text: 'In. Right. Then I shall be moving further up the beach. Eventually. In a bit.',
+      next: 'bye',
+    },
+    out: {
+      text: 'Out! Then there\'ll be shells by the rocks. There\'s always shells when she goes out.',
+      next: 'bye',
+    },
+    dunno: {
+      text: 'Nobody does. That\'s the honest answer and you\'re the first man on this island to give it me.',
+      next: 'bye',
+    },
+    bye: {
+      text: {
+        any: 'Go on then. Mind the sharp bits — this sand is full of them.',
+        rain: 'Off you go. And don\'t sit under the palms in rain, they drop things.',
+        storm: 'Go! I\'m fine. I\'m always fine. Been out in worse than this and I\'ll tell you about it never.',
+      },
+    },
+  },
+};

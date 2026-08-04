@@ -66,6 +66,7 @@ export const PALETTE = {
   L: '#c8a848',         // straw, weave / shade
   x: '#3aa08a',         // shirt teal
   X: '#1f6b5e',
+  '8': '#41764a',       // bottle glass
   // Painted-silver ironwork, and no outline tone at all. A hard black edge is
   // right for a 16px character, but on a lamp it swallowed the post; a darker
   // grey did the same, because the sun is behind the world and every
@@ -1030,6 +1031,166 @@ const W_RIGHT_B = [
   '....kkkeekk.....',
 ];
 
+/*
+  The drifter on the south beach. Built on the villagers' own proportions so he
+  reads as the same cast rather than an import — the difference is all in what
+  he has and has not got: a mop of hair instead of a hat, nothing above the
+  waist, cut-offs instead of trousers, bare feet instead of boots, and a bottle
+  at his hip. At sixteen pixels that is as much characterisation as there is
+  room for, and it is enough.
+*/
+const BUM_DOWN_A = [
+  '.....kkkkkk.....',
+  '....kNNNNNNk....',
+  '...kNNNNNNNNk...',
+  '...kNNNNNNNNk...',
+  '....kssssssk....',
+  '....kskssksk....',
+  '....ksNNNNsk....',
+  '.kskssssssssksk.',
+  '.ksksSssssSsksk.',
+  '.k88ssssssssssk.',
+  '..k8qqqqqqqqkk..',
+  '..kqqqqqqqqqqk..',
+  '..ksssk..ksssk..',
+  '..ksssk..ksssk..',
+  '..kSSSk..kSSSk..',
+  '...kkk....kkk...',
+];
+
+const BUM_DOWN_B = [
+  '.....kkkkkk.....',
+  '....kNNNNNNk....',
+  '...kNNNNNNNNk...',
+  '...kNNNNNNNNk...',
+  '....kssssssk....',
+  '....kskssksk....',
+  '....ksNNNNsk....',
+  '.kskssssssssksk.',
+  '.ksksSssssSsksk.',
+  '.k88ssssssssssk.',
+  '..k8qqqqqqqqkk..',
+  '..kqqqqqqqqqqk..',
+  '...ksssk..ksssk.',
+  '...ksssk..ksssk.',
+  '...kSSSk..kSSSk.',
+  '....kkk....kkk..',
+];
+
+const BUM_UP_A = [
+  '.....kkkkkk.....',
+  '....kNNNNNNk....',
+  '...kNNNNNNNNk...',
+  '...kNNNNNNNNk...',
+  '....kNNNNNNk....',
+  '....kNNNNNNk....',
+  '....kNNNNNNk....',
+  '.kskssssssssksk.',
+  '.ksksSssssSsksk.',
+  '.kssssssssssssk.',
+  '..kkqqqqqqqqkk..',
+  '..kqqqqqqqqqqk..',
+  '..ksssk..ksssk..',
+  '..ksssk..ksssk..',
+  '..kSSSk..kSSSk..',
+  '...kkk....kkk...',
+];
+
+const BUM_UP_B = [
+  '.....kkkkkk.....',
+  '....kNNNNNNk....',
+  '...kNNNNNNNNk...',
+  '...kNNNNNNNNk...',
+  '....kNNNNNNk....',
+  '....kNNNNNNk....',
+  '....kNNNNNNk....',
+  '.kskssssssssksk.',
+  '.ksksSssssSsksk.',
+  '.kssssssssssssk.',
+  '..kkqqqqqqqqkk..',
+  '..kqqqqqqqqqqk..',
+  '...ksssk..ksssk.',
+  '...ksssk..ksssk.',
+  '...kSSSk..kSSSk.',
+  '....kkk....kkk..',
+];
+
+const BUM_LEFT_A = [
+  '.....kkkkkk.....',
+  '....kNNNNNNk....',
+  '...kNNNNNNNNk...',
+  '...kNNNNNNNNk...',
+  '...ksssskNNk....',
+  '...ksksssNNk....',
+  '...kssNNkNNk....',
+  '....ksssssssk...',
+  '....ksssSsssk...',
+  '....kss8ssssk...',
+  '....kqqqqqqk....',
+  '....kqqqqqqk....',
+  '.....ksssk......',
+  '.....ksssk......',
+  '.....kSSSk......',
+  '......kkk.......',
+];
+
+const BUM_LEFT_B = [
+  '.....kkkkkk.....',
+  '....kNNNNNNk....',
+  '...kNNNNNNNNk...',
+  '...kNNNNNNNNk...',
+  '...ksssskNNk....',
+  '...ksksssNNk....',
+  '...kssNNkNNk....',
+  '....ksssssssk...',
+  '....ksssSsssk...',
+  '....kss8ssssk...',
+  '....kqqqqqqk....',
+  '....kqqqqqqk....',
+  '......ksssk.....',
+  '......ksssk.....',
+  '......kSSSk.....',
+  '.......kkk......',
+];
+
+const BUM_RIGHT_A = [
+  '.....kkkkkk.....',
+  '....kNNNNNNk....',
+  '...kNNNNNNNNk...',
+  '...kNNNNNNNNk...',
+  '....kNNkssssk...',
+  '....kNNsssksk...',
+  '....kNNkNNssk...',
+  '...ksssssssk....',
+  '...ksssSsssk....',
+  '...k8ssssssssk..',
+  '....kqqqqqqk....',
+  '....kqqqqqqk....',
+  '......ksssk.....',
+  '......ksssk.....',
+  '......kSSSk.....',
+  '.......kkk......',
+];
+
+const BUM_RIGHT_B = [
+  '.....kkkkkk.....',
+  '....kNNNNNNk....',
+  '...kNNNNNNNNk...',
+  '...kNNNNNNNNk...',
+  '....kNNkssssk...',
+  '....kNNsssksk...',
+  '....kNNkNNssk...',
+  '...ksssssssk....',
+  '...ksssSsssk....',
+  '...k8ssssssssk..',
+  '....kqqqqqqk....',
+  '....kqqqqqqk....',
+  '.....ksssk......',
+  '.....ksssk......',
+  '.....kSSSk......',
+  '......kkk.......',
+];
+
 /**
  * Every villager sprite set, by name. An NPC picks one; two of them standing in
  * the same square metre wearing the same face is the thing this is here to stop.
@@ -1046,6 +1207,12 @@ export const VILLAGERS = {
     up: [W_UP_A, W_UP_B],
     left: [W_LEFT_A, W_LEFT_B],
     right: [W_RIGHT_A, W_RIGHT_B],
+  },
+  drifter: {
+    down: [BUM_DOWN_A, BUM_DOWN_B],
+    up: [BUM_UP_A, BUM_UP_B],
+    left: [BUM_LEFT_A, BUM_LEFT_B],
+    right: [BUM_RIGHT_A, BUM_RIGHT_B],
   },
 };
 

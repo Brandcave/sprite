@@ -1,6 +1,7 @@
 import { VILLAGERS } from './art.js';
 import { Character, DIRS } from './character.js';
 import { sim, frac, TICK } from './sim.js';
+import { dayAt } from './weather.js';
 
 /*
   A villager who potters around a home tile and looks up when you come near.
@@ -23,6 +24,19 @@ import { sim, frac, TICK } from './sim.js';
     and who moves first decides who gets the tile.
 */
 
+/*
+  How far gone somebody is at a given point in the day. Sober at first light,
+  works up to it steadily, and sleeps it off before dawn comes round again.
+
+  A function of the clock, like everything else in this file, so every machine
+  agrees on how drunk he is without a word being sent about it.
+*/
+export function drunkAt(phase) {
+  if (phase < 0.08) return 0;                       // first light: rough, but upright
+  if (phase < 0.62) return (phase - 0.08) / 0.54;   // the long afternoon
+  return Math.max(0, 1 - (phase - 0.62) / 0.28);    // and out
+}
+
 const NOTICE = 3;                 // tiles — inside this, the villager watches you
 const DECIDE = 40;                // ticks between decisions (2 seconds)
 const HOLD = 6;                   // decisions spent heading for one destination
@@ -30,7 +44,7 @@ const WARMUP = 120;               // decisions a fresh client replays to settle 
 
 export class Npc extends Character {
   constructor(scene, tileX, tileZ, {
-    index = 0, roam = 3, script = null, sprites = VILLAGERS.straw,
+    index = 0, roam = 3, script = null, sprites = VILLAGERS.straw, tipsy = false,
   } = {}) {
     // a slightly slower cadence than the hero, so the player reads as the quick one
     super(scene, sprites, tileX, tileZ, { stepTime: 0.26 });
@@ -39,6 +53,7 @@ export class Npc extends Character {
     this.homeZ = tileZ;
     this.roam = roam;
     this.script = script;
+    this.tipsy = tipsy;
     this.talking = false;
     this.decided = -1;
 
@@ -91,10 +106,36 @@ export class Npc extends Character {
     };
   }
 
+  /** How drunk this one is at the moment of a given decision — 0 for anybody sober. */
+  tipsiness(n) {
+    if (!this.tipsy) return 0;
+    // The decision's own moment, not this one: a client catching up replays old
+    // decisions, and he has to be as drunk then as he was at the time.
+    return drunkAt(dayAt((n * DECIDE - this.index * 13) * TICK));
+  }
+
   /** One decision: dawdle, or take a step towards the destination. */
   decide(n) {
     if (this.talking || this.moving) return;
-    if (frac(sim.seed, 303, this.index, n) < 0.3) return;    // stand a while
+
+    const drunk = this.tipsiness(n);
+    // Standing about, swaying, is most of what being drunk looks like from
+    // outside — so it goes up with the hour, on top of the usual dawdle.
+    if (frac(sim.seed, 303, this.index, n) < 0.3 + drunk * 0.4) return;
+
+    /*
+      And now and then a step simply goes wrong. This is the one thing in here
+      that depends on where he already is rather than where he is headed, which
+      is the shape of thing the note above warns about — but it survives for the
+      reason given there: he is still walking toward a destination every client
+      agrees on, so a stumble puts two copies of him a tile apart and the next
+      few decisions bring them back together. Drift washes out; it does not
+      accumulate.
+    */
+    if (frac(sim.seed, 306, this.index, n) < drunk * 0.3) {
+      const dir = Math.floor(frac(sim.seed, 307, this.index, n) * 4);
+      if (this.step(dir, 0, true)) return;
+    }
 
     const to = this.destination(n);
     const dx = to.x - this.tileX;

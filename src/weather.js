@@ -44,6 +44,10 @@ const PROFILES = {
 const WEIGHTED = ['wind', 'wind', 'rain', 'rain', 'rain', 'storm'];
 
 export const DAY_LENGTH = 24 * 60;    // seconds per full day/night cycle
+export const DAY_PHASE = 0.115;       // a fresh world opens a little after sunrise
+
+/** Where in the day a moment falls: 0 at dawn, 0.25 noon, 0.5 dusk, 0.75 night. */
+export const dayAt = (seconds) => (seconds / DAY_LENGTH + DAY_PHASE + 1) % 1;
 const RAMP = 10;                      // seconds to fade a spell in or out
 const DUR = [70, 130];                // spell length, seconds
 

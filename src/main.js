@@ -7,9 +7,9 @@ import { Dialogue, message, partOfDay } from './dialogue.js';
 import { Chat } from './chat.js';
 import { Channel } from './channel.js';
 import { Toolbar } from './toolbar.js';
-import { ANOKA, TULA, SIGNS, WORN_SIGN } from './dialogue-scripts.js';
+import { ANOKA, TULA, BRAM, SIGNS, WORN_SIGN } from './dialogue-scripts.js';
 import { VILLAGERS } from './art.js';
-import { Weather, DAY_LENGTH } from './weather.js';
+import { Weather, DAY_LENGTH, DAY_PHASE, dayAt } from './weather.js';
 import { sim } from './sim.js';
 import { Net } from './net.js';
 import { RemotePlayer } from './remote.js';
@@ -180,6 +180,8 @@ const player = new Player(scene, spawn[0], spawn[1], net.id);
 const npcs = [
   new Npc(scene, 34, 28, { index: 0, roam: 3, script: ANOKA, sprites: VILLAGERS.straw }),
   new Npc(scene, 26, 20, { index: 1, roam: 2, script: TULA, sprites: VILLAGERS.weaver }),
+  // Down on the south beach, and steadily less vertical as the day goes on.
+  new Npc(scene, 28, 47, { index: 2, roam: 4, script: BRAM, sprites: VILLAGERS.drifter, tipsy: true }),
 ];
 
 const dialogue = new Dialogue(document.body, TOUCH
@@ -314,10 +316,9 @@ const KEYMAP = {
 // wraps at 1 -> 0, which the keyframe table and the sun arc are both built to
 // cross seamlessly. It is *read* from the shared clock rather than accumulated,
 // so two machines on the same epoch are at the same hour without being told.
-const DAY_PHASE = 0.115;              // a fresh world opens a little after sunrise
 let dayShift = 0;                     // setDay() only moves this
 let dayT = DAY_PHASE;
-const readDay = () => (sim.time / DAY_LENGTH + DAY_PHASE + dayShift + 1) % 1;
+const readDay = () => (dayAt(sim.time) + dayShift + 1) % 1;
 
 const TALK_KEYS = new Set(['KeyZ', 'KeyE', 'Enter', 'Space']);
 
