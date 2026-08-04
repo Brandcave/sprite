@@ -23,7 +23,7 @@ import { nameOf } from './identity.js';
 
 const LIFE = 14000;           // how long a line stays up
 const FADE = 600;             // and how long it takes to go
-const POP = 260;              // and how long it takes to burst
+const POP = 380;              // and how long it takes to burst
 const STACK = 4;              // most lines on screen at once
 const BOUNCE = 420;           // opening and closing the field
 const MAX_TEXT = 120;         // the relay's cap, so the field cannot overrun it
@@ -68,9 +68,17 @@ const CSS = `
    top, having been read. Being crowded out bursts on the spot — the line is
    not finished with, it has been shoved, and it should look shoved. */
 .ch-bubble.ch-gone { opacity: 0; transform: translateY(-10px); }
+
+/* The dip before the burst is what sells it: a bubble tightens for an instant
+   before it goes, and without that beat this only reads as a fade. */
 .ch-bubble.ch-pop {
-  opacity: 0; transform: scale(1.32);
-  transition: opacity ${POP}ms ease-out, transform ${POP}ms cubic-bezier(0.3, 1.5, 0.6, 1);
+  transform-origin: center;
+  animation: ch-burst ${POP}ms cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+@keyframes ch-burst {
+  0% { transform: scale(1); opacity: 1; filter: none; }
+  22% { transform: scale(0.9); opacity: 1; }
+  100% { transform: scale(2.1); opacity: 0; filter: blur(4px); }
 }
 
 .ch-head { font-size: 0.82em; letter-spacing: 0.06em; margin-bottom: 2px; }
@@ -241,14 +249,20 @@ export class Channel {
     who.className = 'ch-who';
     // On something you sent privately, your own name is the one thing you
     // already know; who heard it is the part worth printing.
-    who.textContent = to !== null && mine ? `You → ${nameOf(to)}`
+    who.textContent = to !== null && mine ? `You to ${nameOf(to)}`
       : mine ? 'You'
       : nameOf(from);
 
-    const kind = document.createElement('span');
-    kind.className = 'ch-kind';
-    kind.textContent = to !== null ? ' (Private)' : ' (Public)';
-    head.append(who, kind);
+    head.append(who);
+
+    // Only the private ones are labelled. Public is what talking normally is,
+    // and a label on every line makes the one that matters easier to miss.
+    if (to !== null) {
+      const kind = document.createElement('span');
+      kind.className = 'ch-kind';
+      kind.textContent = ' (Private)';
+      head.append(kind);
+    }
 
     const body = document.createElement('div');
     body.className = 'ch-text';
