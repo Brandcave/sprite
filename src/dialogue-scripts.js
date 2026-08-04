@@ -260,6 +260,23 @@ export const BRAM = {
     to mention the wind. But she does arrive into whatever the day is doing, and
     the first line is where that shows.
 
+  And a note on her voice, because it is the whole of her and it is easy to write
+  the wrong one by accident. Amy is strong and her language is soft. Those are
+  not in tension — the strength is in what she will and will not have, and the
+  softness is in how she says it. She asks rather than orders, she is openly glad
+  to see you, she takes a compliment instead of batting it away, and when she
+  stops you she does it gently and with her hand out.
+
+  The first draft of these lines got that backwards: her strength was written as
+  hardness, so she arrived clipped and arch and correcting people's grammar, and
+  at one point announced that she does not soften anything. That is a woman you
+  admire from a distance. It is not one you fall in love with, and falling in
+  love with her is the only thing this script has to do.
+
+  So: no barbs, no orders where an invitation will do, and nothing that scores a
+  point off him. If a line of hers could be delivered with a raised eyebrow, it
+  is the wrong line.
+
   The three endings of AMY_FOUNTAIN are named for the places she goes on to be at.
   That is not a coincidence to be tidied up later — story.js reads the ending id
   straight back as a place, which is what keeps the choice and its consequence
@@ -272,19 +289,19 @@ export const AMY_HOUSE = {
   nodes: {
     intro: {
       text: {
-        clear: 'Oh — hello. I let myself in out of the sun. I did not expect anybody else to be wandering about in it.',
-        wind: 'Shut that behind you, would you? Half the beach has already come in with me as it is.',
-        rain: 'You are dripping on somebody\'s floor. Come in properly or go back out, but do pick one.',
-        storm: 'Sit down. Nobody sensible is going back out in that, and I have decided that you are sensible.',
+        clear: 'Oh — hello. I let myself in out of the sun; I hope that is all right. I did not think anybody else was out in it.',
+        wind: 'Come in, come in — and pull that to behind you. Half the beach has followed me in as it is.',
+        rain: 'You are soaked through. Come all the way in, there is dry floor over this side.',
+        storm: 'Come in and sit down. Nobody should be out in that, and I would rather not be the only one in here listening to it.',
       },
       next: 'name',
     },
     name: {
-      text: 'Amy. And no, I do not live here. I came in off a boat, the same as you did.',
+      text: 'Amy. And no, this is not my house either — I came in off a boat, same as you did. We are both trespassing.',
       next: 'ask',
     },
     ask: {
-      text: 'Well? You have been stood in that doorway a while now.',
+      text: 'You have been standing in that doorway a while now. You are allowed to say something.',
       choices: [
         { label: 'You\'re beautiful', next: 'flat' },
         { label: 'Who are you?', next: 'who' },
@@ -292,19 +309,21 @@ export const AMY_HOUSE = {
       ],
     },
     flat: {
-      text: 'Ha. Straight out with it. Men have said prettier things to me and meant a great deal less by them.',
+      text: 'Oh. Straight out with it, then. That is a kinder thing to hear than you know, and I will not pretend otherwise.',
       next: 'plain',
     },
     who: {
-      text: 'Somebody who does not care to be asked that from a doorway. Come in, and then ask me.',
+      text: 'Somebody sheltering, the same as you. Come in properly and I will tell you the rest of it.',
       next: 'plain',
     },
     go: {
-      text: 'I did not tell you to leave. I said you had been standing there. Those are two different sentences.',
+      text: 'No — stay. I did not say you were in the way. I only said you had been standing there a while.',
       next: 'plain',
     },
+    // The line that says who she is, and the one the whole register turns on.
+    // It used to read "I do not soften it afterwards", which was the wrong woman.
     plain: {
-      text: 'I will save you the guessing. I say what I mean, and I do not soften it afterwards. Most people manage about a day of that.',
+      text: 'I will save you the guessing. I say what I mean — gently, I hope, but I do say it. Most people manage about a day of that.',
       next: 'stare',
     },
     stare: {
@@ -318,15 +337,15 @@ export const AMY_HOUSE = {
       next: 'amused',
     },
     amused: {
-      text: 'Everyone thinks that. On the first day.',
+      text: 'They all think that on the first day. I would like to be wrong about you.',
       next: 'off',
     },
     off: {
-      text: 'Anyhow. I am off — I have been under a roof long enough, and the day does not wait about for a conversation.',
+      text: 'Anyway. I should go — I have been under a roof long enough for one afternoon.',
       next: 'bye',
     },
     bye: {
-      text: 'The fountain, if you are still standing there once I have gone. Everyone ends up at the fountain.',
+      text: 'The fountain, though. If you find yourself out that way. Everybody ends up at the fountain sooner or later.',
     },
   },
 };
@@ -338,12 +357,12 @@ export const AMY_FOUNTAIN = {
     intro: {
       text: {
         clear: {
-          morning: 'You came. Early, as well. I had you down for the sort who turns up at noon.',
-          noon: 'You came. In this heat, too. Sit on the curb before you fall down.',
-          evening: 'You came. Good — this is the hour worth being out in. Whole plaza goes gold in a minute.',
-          night: 'You came. This late, and out to the fountain of all places. That is either very sweet or very stupid.',
+          morning: 'You came. And early, as well. I had half decided you would not, and I am glad to be wrong.',
+          noon: 'You came, in all this heat. Come and sit on the curb — there is shade this side of it.',
+          evening: 'You came, and at the best hour for it. Give it a minute and the whole plaza goes gold.',
+          night: 'You came. This late, and all the way out here. That was either very sweet of you or very silly.',
         },
-        any: 'You came. In this, of all things. That is either very sweet or very stupid and I have not settled which.',
+        any: 'You came. In this, of all things. That was either very sweet of you or very silly, and I have not settled which.',
       },
       next: 'say',
     },
@@ -358,11 +377,11 @@ export const AMY_FOUNTAIN = {
       next: 'tried',
     },
     tried: {
-      text: 'Many men have said something close to that, stood about where you are stood now.',
+      text: 'Others have said something close to that, stood just about where you are. I am not made of stone — I always liked hearing it.',
       next: 'special',
     },
     special: {
-      text: 'It is going to take someone special to win my heart. I am not sorry about that.',
+      text: 'But it will take somebody rather particular to win my heart. I hope that does not put you off — I would rather you knew.',
       next: 'try',
     },
     try: {
@@ -371,7 +390,7 @@ export const AMY_FOUNTAIN = {
       next: 'where',
     },
     where: {
-      text: 'Then take me somewhere, and be there before I am. Where are we going?',
+      text: 'Then take me somewhere. Somewhere you have thought about. Where are we going?',
       choices: [
         { label: 'Dinner, indoors', next: 'dinner' },
         { label: 'Picnic at the lagoon', next: 'picnic' },
@@ -379,10 +398,10 @@ export const AMY_FOUNTAIN = {
       ],
     },
     dinner: {
-      text: 'The house with the long table, then. I will be sat at it before you are through the door.',
+      text: 'The house with the long table, then. I will be there before you are — I am always early, it is a terrible habit.',
     },
     picnic: {
-      text: 'The lagoon, then. Bring something worth eating, and do not be clever about it.',
+      text: 'The lagoon, then. Bring something to eat, and please do not go to any trouble over it.',
     },
     /*
       The one line in this file that reaches out of the box and changes the
@@ -393,7 +412,7 @@ export const AMY_FOUNTAIN = {
       keep it from where it was spoken.
     */
     stars: {
-      text: 'Then let it get dark. The top of the road, where it runs out into the sand — I will be stood at the end of it.',
+      text: 'Then let it get dark. The top of the road, where it runs out into the sand — I will be waiting at the end of it.',
       cue: 'nightfall',
     },
   },
@@ -419,7 +438,7 @@ export const AMY_DATE = {
   nodes: {
     // ---- dinner, at the long table
     dinner: {
-      text: 'You are late. I have been sat here long enough to have named all six of these chairs.',
+      text: 'There you are. I have been here long enough to have named all six of these chairs, and I did not mind a bit.',
       next: 'dinner2',
     },
     dinner2: {
@@ -428,7 +447,7 @@ export const AMY_DATE = {
       next: 'dinner3',
     },
     dinner3: {
-      text: 'Careful. I could get used to being answered back.',
+      text: 'Oh, I like that. I could get used to being answered back.',
       next: 'dinner4',
     },
     dinner4: {
@@ -437,13 +456,13 @@ export const AMY_DATE = {
       next: 'dinner5',
     },
     dinner5: {
-      text: 'Sit down. And stop looking at me like that — the food is over here.',
+      text: 'Come and sit, then. And do stop looking at me like that — you will put me off my food.',
       next: 'never',
     },
 
     // ---- a picnic on the lip of the lagoon
     picnic: {
-      text: 'You brought something. I will be honest, I did not entirely expect you to bring something.',
+      text: 'You brought something. That was kind of you — I will admit I did not altogether expect it.',
       next: 'picnic2',
     },
     picnic2: {
@@ -452,7 +471,7 @@ export const AMY_DATE = {
       next: 'picnic3',
     },
     picnic3: {
-      text: 'That is the most romantic thing anybody has managed all year, and you did it by not trying.',
+      text: 'That is the loveliest thing anybody has done for me all year, and you managed it by not trying.',
       next: 'picnic4',
     },
     picnic4: {
@@ -461,13 +480,13 @@ export const AMY_DATE = {
       next: 'picnic5',
     },
     picnic5: {
-      text: 'Do not, you will ruin it. Sit — the water goes green just here when the light is low.',
+      text: 'Oh, do not — you will ruin it. Come and sit; the water goes green just here when the light gets low.',
       next: 'never',
     },
 
     // ---- the end of the road, where it meets the north sand, after dark
     stars: {
-      text: 'You came all the way back up the road in the dark, then.',
+      text: 'You came all the way back up the road in the dark. You did not have to do that.',
       next: 'stars2',
     },
     stars2: {
@@ -476,7 +495,7 @@ export const AMY_DATE = {
       next: 'stars3',
     },
     stars3: {
-      text: 'I did. I did not think you would take me at my word quite so exactly.',
+      text: 'I did. I did not think anybody would take me at my word quite so exactly. It is a lovely feeling.',
       next: 'stars4',
     },
     stars4: {
@@ -485,7 +504,7 @@ export const AMY_DATE = {
       next: 'stars5',
     },
     stars5: {
-      text: 'Lie back, then. You cannot see them properly stood up, and I refuse to be the only one on this beach looking foolish.',
+      text: 'Lie back with me, then. You cannot see them properly stood up — and I would rather not be the only one on this beach looking foolish.',
       next: 'never',
     },
 
@@ -509,16 +528,18 @@ export const AMY_DATE = {
       text: 'But if you would give me a chance, I would do anything to build you a perfect life.',
       next: 'stop',
     },
+    // The turn of the whole story, and it has to be gentle. She is not shutting
+    // him up; she is catching something before he has to carry it.
     stop: {
-      text: 'Stop. Stop there.',
+      text: 'Oh, stop. Stop there a moment — before you promise me something you would have to carry all your life.',
       next: 'happy',
     },
     happy: {
-      text: 'I do not need a man to hand me a perfect life. I am happy. I was happy long before you turned up.',
+      text: 'I do not need a man to hand me a perfect life. I am happy already. I was happy long before you turned up.',
       next: 'partner',
     },
     partner: {
-      text: 'What I want is a partner. I want you whole on your own — so that the two of us are whole together.',
+      text: 'What I would like is a partner. I want you whole on your own, so that the two of us are whole together.',
       next: 'fair',
     },
     fair: {
@@ -527,19 +548,19 @@ export const AMY_DATE = {
       next: 'strong',
     },
     strong: {
-      text: 'I need somebody strong, like my father. And present, like my mother. One without the other is no use to me.',
+      text: 'I would like somebody strong, the way my father was. And present, the way my mother was. Never one without the other.',
       next: 'legacy',
     },
     legacy: {
-      text: 'And I am not doing this without something to build. Goals — for you, for me, for whatever the two of us turn out to be.',
+      text: 'And I would like us to be building something. Goals — for you, for me, for whatever the two of us turn out to be.',
       next: 'three',
     },
     three: {
-      text: 'Three of them. One, a godly spouse. Two, a godly family.',
+      text: 'Three of them. The first is a godly spouse. The second, a godly family.',
       next: 'stretch',
     },
     stretch: {
-      text: 'And three, if I am lucky — and this one is a stretch — something that outlasts the both of us. Generational wealth.',
+      text: 'And the third, if I am very lucky — and I know it is a reach — something that outlasts the both of us. Generational wealth.',
       next: 'in',
     },
     in: {
@@ -564,8 +585,11 @@ export const AMY_DATE = {
     // is why there is no "and she is gone" node here any more. Watching somebody
     // leave beats being told they left, and the walk is already written: see
     // leave() in story.js.
+    // Her words, kept exactly. The second sentence is the softness the line
+    // needs to land as a hope rather than a condition — without it she reads as
+    // setting a test, and she has never once been setting a test.
     last: {
-      text: 'Come and find me when you are a complete man.',
+      text: 'Come and find me when you are a complete man. I will be hoping that you do.',
     },
   },
 };
