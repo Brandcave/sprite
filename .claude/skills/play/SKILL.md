@@ -24,13 +24,26 @@ of them open a perfectly normal island with nobody on it, because being alone is
 a legitimate outcome the game supports on purpose. Nothing throws. Nothing goes
 red.
 
-So never infer that a session is working. Check it, and know the difference
-between the two things the HUD can say:
+So never infer that a session is working, and do not ask the user to tell you
+either. **There is no connection indicator in the game.** There was one — a HUD
+reading `ROWAN · 1 here · 296ms`, or `alone` — and it was taken out in 6466313,
+"The clock tells the time and nothing else". Only the clock is left. Anything in
+this file or in a code comment that tells you to read a HUD is describing a
+version of the game that no longer exists.
 
-- `ROWAN · 1 here · 296ms` — connected, and currently the only one there.
-- `alone` — not connected to anything.
+What that leaves:
 
-Users read the first as broken. Say which one they should expect.
+- **Ask the relay.** It is the only authority, it is one curl, and it can tell
+  the difference between the three states that matter. See the block below.
+- **The minimap**, for the user. Another player is a *large* dot in their own
+  colour; villagers are small teal ones and Amy is rose. So "is he here yet" is
+  "is there a second big dot". Two caveats worth saying out loud: the minimap is
+  hidden indoors, and it only draws where that player has already uncovered
+  ground, so a friend who has just landed somewhere they have not walked yet is
+  genuinely not on it.
+
+Never make the user the instrument. Asking someone to interpret an empty island
+is asking them to guess, and their guess and yours will both be wrong.
 
 ## Starting a session
 
@@ -82,9 +95,9 @@ echo "$H -> ${IP:-DEAD, no longer resolves}"
 ```
 
 - `{"ok":true,"rooms":[...]}` — the relay is fine and the link works. The
-  problem is at their end: an older link, or a misread HUD. Ask them to paste
-  what is actually in their address bar; there are usually several dead links in
-  the conversation and only the newest works.
+  problem is at their end: an older link. Ask them to paste what is actually in
+  their address bar; there are usually several dead links in the conversation
+  and only the newest works.
 - Unresolvable, or no answer — the address is gone. Restart, passing the old
   link so they keep their island.
 
@@ -93,20 +106,62 @@ at all, `"players":2` means two people are in. That distinguishes "they have not
 clicked yet" from "something is broken", which guessing from an empty island
 cannot.
 
-## Verifying it yourself
+**Check the room key, not just that a room exists.** The key is `epoch:seed`,
+and it has to match the link the user is actually holding. A running session
+serving `1785809379008:3482809601` while they are on a link for
+`1785788722648:2312858667` is two people in two different worlds with every
+process healthy — and `rooms` is non-empty the whole time, so a glance at it
+says everything is fine. Compare the numbers.
 
-Open the link with the browser tools and read the HUD:
+**A running session is not a working one.** `pgrep -f scripts/play.mjs` finding
+something proves only that the script is alive, and its whole job is to survive
+failure by taking a new address. It will sit in a loop — new address, fail its
+own readiness check, new address — indefinitely. Read the tail of the log, not
+the process list:
 
-```js
-await new Promise(r => setTimeout(r, 5000));
-({ online: net.online, hud: document.getElementById('net').textContent })
+```bash
+tail -20 /tmp/play.log
 ```
 
-`online: true` and a HUD of `NAME · n here · NNms` means live.
+Repeated `the address stopped answering — taking a new one` with no link after
+it is that loop. Before restarting into the same hole, check whether the pieces
+work on their own — this loop has been the script's probe failing while
+cloudflared and DNS were both fine:
 
-**Then leave the room.** Navigate that tab to `https://example.com` — a
-verification tab left open is a real player standing in their world, and it
-inflates the count so `1 here` is you, not them.
+```bash
+cloudflared tunnel --url http://localhost:8787 --no-autoupdate > /tmp/cft-probe.log 2>&1 &
+sleep 18; grep -E "trycloudflare.com|ERR|failed" /tmp/cft-probe.log | head
+```
+
+A hostname and `Registered tunnel connection` means cloudflared is healthy and
+the fault is the script's; kill the probe and restart the session cleanly.
+
+## Verifying it yourself
+
+Do not open the link in a browser to check it. A verification tab is a real
+player standing in their world, it inflates the count so the one other person
+they see is you, and it is easy to walk away and leave it there.
+
+Connect the way the game does instead — a real `wss://` upgrade into the exact
+room from the link, which is the thing that has to work and the one thing the
+curl above does not prove. It disconnects itself:
+
+```bash
+cd /Users/codymiles/Desktop/sprite-2
+node -e "
+import('ws').then(({default: WS}) => {
+  const ws = new WS('wss://<host>.trycloudflare.com?epoch=<epoch>&seed=<seed>');
+  const t = setTimeout(() => { console.log('TIMEOUT'); process.exit(1); }, 15000);
+  ws.on('open', () => console.log('wss upgrade: OK'));
+  ws.on('message', m => { console.log(m.toString()); clearTimeout(t); ws.close(); setTimeout(()=>process.exit(0), 300); });
+  ws.on('error', e => { console.log('ERROR:', e.message); process.exit(1); });
+});
+"
+```
+
+`wss upgrade: OK` followed by a `{"t":"welcome",...}` is a verified link. HTTP
+answering while the upgrade fails is a real shape of failure — the tunnel is
+fine and the game still cannot connect — and only this catches it.
 
 ## Stopping, and checking
 

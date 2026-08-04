@@ -30,9 +30,20 @@ const RESYNC_MS = 30000;          // and one every half minute after
 
   Unset, it guesses the machine serving the page, which is right in development
   and wrong everywhere else. That failure is quiet by design: connect() resolves
-  false, the island opens alone, and the HUD says so. Worth knowing when a
-  deployment looks synchronised but empty — the weather and the clock come from
-  the seed in the URL and agree with themselves happily without a server.
+  false and the island opens alone, which is a perfectly good outcome and the
+  reason nothing here throws.
+
+  It is quieter than it used to be. This once said "and the HUD says so", and
+  there was a HUD that said so; it went when the clock stopped reporting
+  anything but the time, and nothing replaced it. So there is now no way to tell
+  from inside the game whether you are connected — the only tells are another
+  player's dot on the minimap, and the relay's own / endpoint, which lists the
+  rooms and who is in them.
+
+  Worth knowing when a deployment looks synchronised but empty: the weather, the
+  clock and the villagers are all functions of the seed in the URL and agree
+  with themselves perfectly happily without a server, so two people on a dead
+  relay see an identical world with nobody in it.
 */
 function defaultUrl() {
   const params = new URLSearchParams(location.search);
