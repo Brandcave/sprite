@@ -35,24 +35,15 @@
       #view { display: block; width: 100vw; height: 100vh; height: 100dvh; }
 
       .hud {
-        position: fixed;
         font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
         color: #eaf2ff;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
         user-select: none;
         pointer-events: none;
       }
-      #clockwrap {
-        right: max(16px, env(safe-area-inset-right, 0px));
-        top: max(16px, env(safe-area-inset-top, 0px));
-        padding: 10px 16px;
-        background: rgba(10, 16, 30, 0.55);
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        border-radius: 8px;
-        backdrop-filter: blur(8px);
-        text-align: center;
-      }
-      #clock { font-size: 20px; letter-spacing: 0.08em; }
+      /* Sits in the corner of the minimap, which adopts it — see minimap.js. */
+      #clockwrap { position: absolute; right: 8px; bottom: 5px; }
+      #clock { font-size: 12px; letter-spacing: 0.1em; }
     </style>
   </head>
   <body>

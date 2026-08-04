@@ -115,6 +115,9 @@ body.touch .dlg-field {
 .tc-off { opacity: 0; transform: scale(0.82); pointer-events: none; }
 
 /* Keep the text box clear of the thumbs, and out from under the keyboard. */
+/* No map on a phone, and the clock lives on the map. */
+body.touch #clockwrap { display: none; }
+
 body.touch .dlg-root { padding-bottom: ${RESERVED}px; }
 body.touch .dlg-hint { bottom: ${RESERVED - 32}px; }
 body.touch.tc-typing .dlg-root { padding-bottom: 18px; bottom: var(--tc-kb, 0px); }

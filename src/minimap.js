@@ -133,6 +133,17 @@ export class Minimap {
     canvas.style.width = `${MAP_W * SCALE}px`;
     canvas.style.height = `${MAP_H * SCALE}px`;
     root.append(canvas);
+
+    /*
+      The clock comes and sits in the corner of the map. Both are the same kind
+      of thing — a small readout of where and when you are — and two floating
+      panels in two corners saying so was one more than the screen needed. It
+      also means the hour is only ever on screen where the map is, which is to
+      say not on a phone.
+    */
+    const clock = document.getElementById('clockwrap');
+    if (clock) root.append(clock);
+
     parent.append(root);
 
     this.ctx = canvas.getContext('2d');
