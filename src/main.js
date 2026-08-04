@@ -3,13 +3,13 @@ import { buildWorld, tileAt, ISLAND, MAP_W, MAP_H } from './world.js';
 import { goTo, here, inBounds } from './place.js';
 import { buildInterior } from './interior.js';
 import { Player } from './player.js';
-import { Npc } from './npc.js';
+import { Npc, scriptOf } from './npc.js';
 import { DIRS, characterAt } from './character.js';
 import { Dialogue, message, partOfDay } from './dialogue.js';
 import { Chat } from './chat.js';
 import { Channel } from './channel.js';
 import { Toolbar } from './toolbar.js';
-import { ANOKA, TULA, BRAM, SIGNS, WORN_SIGN, OPENING } from './dialogue-scripts.js';
+import { ANOKA, TULA, BRAM, villager, SIGNS, WORN_SIGN, OPENING } from './dialogue-scripts.js';
 import { VILLAGERS } from './art.js';
 import { Weather, DAY_LENGTH, DAY_PHASE, dayAt } from './weather.js';
 import { sim } from './sim.js';
@@ -186,11 +186,27 @@ const player = new Player(scene, spawn[0], spawn[1], net.id);
 // decides, and it seeds what they decide. Order matters — villagers block each
 // other, so who moves first decides who gets the tile — so never reorder this
 // list without meaning to.
+//
+// Their scripts are handed over as functions rather than as scripts, because
+// which one they are on depends on how far along you are with Amy and that is
+// not known yet — `story` is built a few lines below, out of rooms that do not
+// exist until after this list. Asked at the moment you press Z, so the answer is
+// always the current one and nothing has to go round the cast when it changes.
+// See villager() in dialogue-scripts.js for the four chapters.
 const npcs = [
-  new Npc(scene, 34, 28, { index: 0, roam: 3, script: ANOKA, sprites: VILLAGERS.straw }),
-  new Npc(scene, 26, 20, { index: 1, roam: 2, script: TULA, sprites: VILLAGERS.weaver }),
+  new Npc(scene, 34, 28, {
+    index: 0, roam: 3, sprites: VILLAGERS.straw,
+    script: () => villager(ANOKA, story.chapter),
+  }),
+  new Npc(scene, 26, 20, {
+    index: 1, roam: 2, sprites: VILLAGERS.weaver,
+    script: () => villager(TULA, story.chapter),
+  }),
   // Down on the south beach, and steadily less vertical as the day goes on.
-  new Npc(scene, 28, 47, { index: 2, roam: 4, script: BRAM, sprites: VILLAGERS.drifter, tipsy: true }),
+  new Npc(scene, 28, 47, {
+    index: 2, roam: 4, sprites: VILLAGERS.drifter, tipsy: true,
+    script: () => villager(BRAM, story.chapter),
+  }),
 ];
 
 /*
@@ -503,7 +519,7 @@ function interact() {
     npc.talking = true;
     // How it ended, and where it ended, for anybody whose next conversation
     // depends on this one. A villager has no onDone and never notices.
-    dialogue.start(npc.script, (why, ending) => {
+    dialogue.start(scriptOf(npc), (why, ending) => {
       npc.talking = false;
       npc.onDone?.(why, ending);
     });

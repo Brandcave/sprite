@@ -230,6 +230,26 @@ export class Story {
     return this.scene !== null;
   }
 
+  /*
+    The same state, read the way the rest of the island cares about it.
+
+    A stage says where Amy is standing, which is the only thing this file needs
+    to know. A villager needs something coarser — how far along the two of you
+    are — and the three date spots are one answer to that rather than three, so
+    the mapping is not the identity and should not pretend to be.
+
+    Written as a fold rather than a table so that adding a fourth place to take
+    her, which is otherwise a node and a line in spotsFor(), stays exactly that:
+    anything that is not one of the named beats is somewhere she is waiting for
+    you, and the village already has the right thing to say about it.
+  */
+  get chapter() {
+    if (this.stage === 'house') return 'searching';
+    if (this.stage === 'fountain') return 'met';
+    if (this.stage === 'gone') return 'gone';
+    return 'date';
+  }
+
   /**
    * The end of one of her conversations.
    *

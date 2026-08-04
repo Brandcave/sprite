@@ -295,6 +295,27 @@ either a `next` or a list of `choices`. Wrapping and pagination happen in the
 box, so a script is written as prose and never has to care where the lines
 break.
 
+Any line can be a table instead of a string, indexed by what the sky is doing
+and which quarter of the day it is, so a villager never greets you with
+"Morning!" while the lamps are lit. Both levels fall back to `any`, so only the
+lines worth varying carry the full sixteen — every opening line does, because it
+is the one everybody gets every time.
+
+The villagers also track the love story. Each of them is four scripts rather
+than one, keyed by how far along you are with Amy — *searching* for her,
+*met* (the ambient island, unchanged), a *date* arranged, and *gone*. `story.js`
+maps her current beat onto one of those four names and the villagers are handed
+their script as a function, so which one you get is resolved at the moment you
+press <kbd>Z</kbd> and nothing has to go round the cast updating them.
+
+They are deliberately not equally informed, and that is most of the
+characterisation: Anoka is outdoors all day and reasons about where a stranger
+*would* be, Tula sits on the plaza and simply watched her walk past, and Bram
+has been staring at the open sea since dawn and could not tell you one thing
+that has been on it. Three answers to the same question, and only two of them
+are answers. Nobody drops the weather to talk about her — a chapter changes what
+a villager is thinking about, not what it is doing to them.
+
 **Lighting.** One directional sun (2048² PCF-soft shadow map, frustum pinned to
 the player), a hemisphere light for sky/ground bounce, and a camera-side fill.
 The day cycle interpolates sun colour/intensity/elevation, sky tint, fog, and

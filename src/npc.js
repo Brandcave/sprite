@@ -37,6 +37,21 @@ export function drunkAt(phase) {
   return Math.max(0, 1 - (phase - 0.62) / 0.28);    // and out
 }
 
+/**
+ * The script somebody is carrying, resolved.
+ *
+ * `script` is normally a script; a villager whose lines depend on something the
+ * world knows carries a function instead, and this is where it is asked. Asked
+ * at the moment the key is pressed rather than held on the villager, for the
+ * same reason the weather tables are read then: what is true when a line opens
+ * is what the line should say, and nothing has to remember to go round the cast
+ * updating them when it changes.
+ *
+ * Everywhere that only wants to know *whether* there is anything to say can keep
+ * testing `.script`, because a function is as truthy as a script is.
+ */
+export const scriptOf = (who) => (typeof who.script === 'function' ? who.script() : who.script);
+
 const NOTICE = 3;                 // tiles — inside this, the villager watches you
 const DECIDE = 40;                // ticks between decisions (2 seconds)
 const HOLD = 6;                   // decisions spent heading for one destination

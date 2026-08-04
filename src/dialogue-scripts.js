@@ -16,6 +16,34 @@
   Deeper lines mostly do not need it. Anoka's advice about the north shore does,
   because advice that ignores the hour is worse than no advice — she should not
   be sending anybody over the roots in the dark.
+
+  ---
+
+  The villagers also notice the *story*, which is the other axis this file runs
+  on. Each of them is not one script but four, keyed by how far along you are
+  with Amy — see story.js for where those four names come from:
+
+    searching  you have seen her once, from a boat, and she is somewhere here
+    met        you have talked in the house; nothing is arranged
+    date       the fountain is done and there is a plan for tonight
+    gone       she has kissed you and sailed, and told you to come back whole
+
+  `met` is the island as it was before any of this: the ambient conversation,
+  unchanged, and it is deliberately the widest chapter because it is the one you
+  spend the most time in. The other three are the village noticing.
+
+  Two rules keep this from turning into a chorus:
+
+  - They are not all equally informed, and that is most of the characterisation.
+    Anoka is outdoors from first light and reasons about where a person *would*
+    be; Tula sits on the plaza and simply watched her walk past; Bram has been
+    staring at the sea all day and could not tell you one thing that was on it.
+    Three answers to the same question, and only two of them are answers.
+
+  - Nobody drops the weather to talk about her. A chapter changes what a villager
+    is thinking about, not whether it is raining on them — so every chapter
+    opening carries its own sixteen, exactly like the ambient one, and the
+    deeper lines vary where the hour or the sky would change the sense of them.
 */
 
 /*
@@ -29,7 +57,107 @@ export const SIGNS = {
 
 export const WORN_SIGN = 'The paint has worn off. Salt air gets everything eventually.';
 
-export const ANOKA = {
+/*
+  Anoka, by the pond — and the one villager who is useful to a man looking for
+  somebody, because she is outdoors from first light and thinks in terms of where
+  a person would sensibly be. She does not claim to have seen Amy. She works out
+  where she must have gone and sends you there, which is a different kind of help
+  and the one that suits her.
+
+  Her chapter openings each have a job beyond the mood:
+    searching  she notices you are searching before you say so
+    date       Amy has been down here twice, unable to talk about anything else
+    gone       she saw the boat go, and has been waiting for you to come and ask
+*/
+const ANOKA_SEARCHING = {
+  name: 'Anoka',
+  start: 'intro',
+  nodes: {
+    intro: {
+      text: {
+        clear: {
+          morning: 'You have been past this pond twice now, and both times you were looking at everything except the water.',
+          noon: 'Nobody crosses this lawn at this hour unless they are after something. Get in the shade and tell me what.',
+          evening: 'Copper light, flat sea, and you have not looked at either of them once. Who is it you are hunting for?',
+          night: 'Out this late, walking along reading doors. Say who it is and save your feet.',
+        },
+        wind: {
+          morning: 'Wind up early and you still out in it, up and down the path. That is a man looking for somebody.',
+          noon: 'Hold that hat. And stop searching the treeline — whatever you have lost, it is not up a palm.',
+          evening: 'It drops when the sun does, and then you will hear yourself think. Whatever you are chasing, chase it then.',
+          night: 'The palms carrying on, and you wandering about underneath them. Neither of you will sleep at this rate.',
+        },
+        rain: {
+          morning: 'Rain before noon and you are out walking in it. Either you like it or you are looking for somebody.',
+          noon: 'You are as wet as I am, and I have got an excuse. Have you?',
+          evening: 'Rain, lamplight, and a stranger going door to door. Go on, then. Ask me.',
+          night: 'You will find nothing out here at this hour but puddles. Ask, and I will save you the wet.',
+        },
+        storm: {
+          morning: 'Off the open path with you — no, do not tell me. You are looking for somebody. It is written all over you.',
+          noon: 'Not a day for searching the shore. Whoever it is has had the sense to get in out of this.',
+          evening: 'Get in off the path. And whoever you are after is under a roof, if they have any sense at all.',
+          night: 'Storm, dark, and you out in the both of them. This had better be worth it.',
+        },
+      },
+      next: 'q',
+    },
+    q: {
+      name: 'You',
+      text: 'There was a girl at the rail of a boat this morning. Hers put in here as well. I have been looking for her since.',
+      next: 'ha',
+    },
+    ha: {
+      text: 'A girl off a boat. And you have been up and down my path all this while working yourself up to asking.',
+      next: 'ask',
+    },
+    ask: {
+      text: 'Go on then. How much of her did you actually see?',
+      choices: [
+        { label: 'A moment of her', next: 'moment' },
+        { label: 'Enough', next: 'enough' },
+        { label: 'It sounds foolish', next: 'foolish' },
+      ],
+    },
+    moment: {
+      text: 'A moment. And here you are on somebody else\'s island because of it. I have heard worse reasons for a crossing.',
+      next: 'where',
+    },
+    enough: {
+      text: 'Enough. Well. People have built a whole life on less than they thought was enough, so I shall not argue with you.',
+      next: 'where',
+    },
+    foolish: {
+      text: 'It does. It also gets a boat across open water, which is more than sense has ever managed. Come on.',
+      next: 'where',
+    },
+    // Where to look is the whole of the advice, so like her north shore
+    // directions it cannot be the same answer at midnight as at dawn. She is
+    // not reporting a sighting — she is reasoning about where a stranger goes.
+    where: {
+      text: {
+        storm: 'Nobody is standing about in this. She will be in out of it, and there are only two roofs on this island worth the name — up the road.',
+        rain: 'She will not be out in this. Try the two houses up the road; that is where the dry floor is.',
+        any: {
+          morning: 'Try the houses up the road. Somebody new goes indoors first and looks about afterwards — always the way.',
+          noon: 'At this hour? Indoors, out of the sun, the same as anybody with sense. The two houses, up the road.',
+          evening: 'Start at the houses up the road and work back down to the plaza. The lamps will be on before you have done both.',
+          night: 'Not out here, not at this hour. The two houses up the road — knock or do not, nobody on this island locks anything.',
+        },
+      },
+      next: 'bye',
+    },
+    bye: {
+      text: {
+        any: 'Go on. And when you find her, do not stand there saying nothing. That is the mistake they all make.',
+        rain: 'Go on, before you catch something. And say something when you get there — that is the whole trick of it.',
+        storm: 'Straight up the road with you. She will keep until you are dry.',
+      },
+    },
+  },
+};
+
+const ANOKA_MET = {
   name: 'Anoka',
   start: 'intro',
   nodes: {
@@ -102,7 +230,243 @@ export const ANOKA = {
   },
 };
 
-export const TULA = {
+const ANOKA_DATE = {
+  name: 'Anoka',
+  start: 'intro',
+  nodes: {
+    intro: {
+      text: {
+        clear: {
+          morning: 'Your girl was down here at first light and told the pond, the palms and me. Three times, near enough.',
+          noon: 'She stood here in the worst of the heat and never once mentioned it. That is a woman with her mind elsewhere.',
+          evening: 'She came down at the gold hour and stood exactly where you are, telling me about this evening.',
+          night: 'She has been past twice since dark on the excuse of nothing at all. You know quite well why.',
+        },
+        wind: {
+          morning: 'She was down here in this wind holding her hair on with both hands and grinning about you.',
+          noon: 'The wind had half of what she said before it got to me, and I still caught the gist. It is you.',
+          evening: 'She told me the whole of it stood in this and did not notice the weather once.',
+          night: 'Shutters going, palms going, and that girl out in the middle of it looking pleased with herself.',
+        },
+        rain: {
+          morning: 'She stood in this rain laying out her plans and would not come under the tree for it.',
+          noon: 'Wet through and beaming. I told her to get in the dry. She said she was perfectly fine.',
+          evening: 'Rain, lamps, and a girl who cannot talk about anything but her evening. Guess whose.',
+          night: 'She has been out in this once already tonight, and it was not for the water.',
+        },
+        storm: {
+          morning: 'Even in this she was down here. I sent her back up the road twice and she came back both times.',
+          noon: 'She came out in a storm to tell me about it. That is what you have gone and done to her.',
+          evening: 'Weather coming in and she is worried about one thing only, and it is not the sky.',
+          night: 'She will be indoors in this, thinking about it. Which is where you ought to be as well.',
+        },
+      },
+      next: 'ask',
+    },
+    ask: {
+      text: 'So. Have you given any thought at all to what you mean to say to her?',
+      choices: [
+        { label: 'Every word', next: 'every' },
+        { label: 'Not one', next: 'none' },
+        { label: 'I\'ll know when I see her', next: 'know' },
+      ],
+    },
+    every: {
+      text: 'Good. Now forget half of it. The half you forget will be the half that was for you and not for her.',
+      next: 'bye',
+    },
+    none: {
+      text: 'Ha! Honest, at least. She will not mind — she is not going for the speech, whatever you may think.',
+      next: 'bye',
+    },
+    know: {
+      text: 'That is either the bravest thing I have heard this year or the laziest, and we shall both find out which.',
+      next: 'bye',
+    },
+    bye: {
+      text: {
+        any: 'Be where you said you would be, and be there first. That is the whole of it.',
+        rain: 'Be there first, and be dry when she arrives, if you can manage the two together.',
+        storm: 'Be there first. And if it keeps on like this, be there with something over your head.',
+      },
+    },
+  },
+};
+
+const ANOKA_GONE = {
+  name: 'Anoka',
+  start: 'intro',
+  nodes: {
+    intro: {
+      text: {
+        clear: {
+          morning: 'You have the look of a man who woke up and found the island one person short.',
+          noon: 'She went at first light. I saw the sail off the point and I knew whose it was without being told.',
+          evening: 'Copper light and nobody to point it out to. I know. I watched her go.',
+          night: 'She is gone, and you have been walking since dark. Sit down here a minute.',
+        },
+        wind: {
+          morning: 'The wind was behind her when she went. That is a good thing for a boat, whatever it is for you.',
+          noon: 'Do not go out to the point looking. She is well past it, and has been for hours.',
+          evening: 'The palms are the only thing on this island still going on about it. Come away from the path.',
+          night: 'You will not hear a boat over this. Stop standing there listening for one.',
+        },
+        rain: {
+          morning: 'She got out before the rain came in. Small mercy, and it is the only one I have got for you.',
+          noon: 'Standing in the wet will not bring her back an hour sooner. I have tried it.',
+          evening: 'I know. I saw her go, and I have been waiting all day for you to come down and ask me.',
+          night: 'Get in out of it. She did not leave so that you could stand about catching cold over her.',
+        },
+        storm: {
+          morning: 'She was gone before this came over, and I am glad of it. So should you be, when you can manage it.',
+          noon: 'No. She is not out in this. She went well ahead of it, and cleanly.',
+          evening: 'Off the path. Whatever you are turning over, you can turn it over under a roof.',
+          night: 'She is somewhere dry tonight, wherever she is. Believe that, and go home.',
+        },
+      },
+      next: 'ask',
+    },
+    ask: {
+      text: 'Go on. Ask me the thing you came all the way down here to ask.',
+      choices: [
+        { label: 'Where did she go?', next: 'where' },
+        { label: 'Did she say anything?', next: 'said' },
+        { label: 'Is she coming back?', next: 'back' },
+      ],
+    },
+    where: {
+      text: 'North, past the point, and I did not ask further than that. She was not hiding it — nobody thought to ask her.',
+      next: 'bye',
+    },
+    said: {
+      text: 'She thanked me for nothing I had done. And she said your name the way people say a thing they have already decided.',
+      next: 'bye',
+    },
+    back: {
+      text: 'That is not mine to promise you. But she left the way people leave who mean to be seen again.',
+      next: 'bye',
+    },
+    // The line that turns a departure into work. Her last words to him were
+    // "come and find me when you are a complete man", and Anoka is the villager
+    // who would hear that as an instruction rather than a goodbye.
+    bye: {
+      text: {
+        any: 'She said come and find her when you are whole. So go and be whole. That is work, not waiting.',
+        rain: 'Go and be whole, she said. You can start by getting in out of this.',
+        storm: 'Go and be whole. And start by getting in off my path before the palms come down on you.',
+      },
+    },
+  },
+};
+
+export const ANOKA = {
+  searching: ANOKA_SEARCHING,
+  met: ANOKA_MET,
+  date: ANOKA_DATE,
+  gone: ANOKA_GONE,
+};
+
+/*
+  Tula, on the plaza bench, with the whole village walking past her all day.
+
+  Where Anoka reasons, Tula simply *saw* — she is the eyewitness, and the pleasure
+  she takes in knowing a thing before you do is the whole of her. So both women
+  send you up the road to the houses and neither is repeating the other: one is
+  telling you where a stranger would go, the other is telling you where this
+  particular stranger went, and enjoying herself about it.
+
+  She is also the one Amy actually talks to, which is what earns her the `date`
+  chapter and makes the `gone` one land — the gossip is the one left holding the
+  half of it she was asked not to pass on.
+*/
+const TULA_SEARCHING = {
+  name: 'Tula',
+  start: 'intro',
+  nodes: {
+    intro: {
+      text: {
+        clear: {
+          morning: 'Two boats put in this morning and I have now met the both of you. Yours was the slower.',
+          noon: 'Sit down before you say it. Whatever you are about to ask me, I already know the answer.',
+          evening: 'The lamps are coming on and you have not stopped moving once. What is it you are after?',
+          night: 'Wandering the plaza after dark on your first day. You are either lost or looking, and you do not look lost.',
+        },
+        wind: {
+          morning: 'Hold this thread. Now say what you came over to say — you have been circling this bench a quarter of an hour.',
+          noon: 'Cannot weave, cannot hear, and there you stand wanting something. Speak up.',
+          evening: 'It drops at dusk. So will you, if you keep going up and down that road all evening.',
+          night: 'Shutters banging and a stranger pacing the plaza. Delightful night, this.',
+        },
+        rain: {
+          morning: 'Rain empties this plaza, and yet here you are. That is not a liking for weather. That is looking for somebody.',
+          noon: 'Under the eaves with you. Then ask — you have had a question on your face since you came round the fountain.',
+          evening: 'Wet stone, lit lamps, and a man reading every doorway but the one I am sitting in. Go on.',
+          night: 'You will catch your death. Ask me whatever it is, and then go and be dry somewhere.',
+        },
+        storm: {
+          morning: 'Nobody is out in this but me and whoever is looking for somebody. Which of those are you?',
+          noon: 'A storm at midday and a stranger on the plaza. Sit. Ask.',
+          evening: 'Get under the eaves and ask me properly. I am not shouting over that for anybody.',
+          night: 'Out in this? Then it is a person you are after, and it matters to you. Out with it.',
+        },
+      },
+      next: 'q',
+    },
+    q: {
+      name: 'You',
+      text: 'A girl came in off a boat this morning. I am trying to find her.',
+      next: 'saw',
+    },
+    saw: {
+      text: 'She did, and I saw her. Went up the road like she had been here before and did not ask one living soul for directions.',
+      next: 'ask',
+    },
+    ask: {
+      text: 'And what do you mean to do when you find her? I only ask because I shall hear about it either way.',
+      choices: [
+        { label: 'Tell her the truth', next: 'truth' },
+        { label: 'I haven\'t got that far', next: 'notfar' },
+        { label: 'That\'s between us', next: 'between' },
+      ],
+    },
+    truth: {
+      text: 'Good. She has the look of somebody who has been told a great many careful things and believed none of them.',
+      next: 'where',
+    },
+    notfar: {
+      text: 'Ha! Then find her slowly. You have got until she gets bored, and I would not bank on that being long.',
+      next: 'where',
+    },
+    between: {
+      text: 'It will not be. Nothing on this island is. But I like you the better for saying it.',
+      next: 'where',
+    },
+    // The eyewitness answer — where she went, not where she'd be — so the hour
+    // changes how much of it Tula can still vouch for.
+    where: {
+      text: {
+        storm: 'Up the road, towards the two houses, and in this she will not have come out of one since.',
+        rain: 'Up the road, towards the houses. She went in out of the wet and I have not seen her back.',
+        any: {
+          morning: 'Up the road, towards the houses. She went in out of the sun and has not been past me since.',
+          noon: 'Up the road. She will not have come back out into this heat — nobody does, and she strikes me as sensible.',
+          evening: 'Up the road, hours ago now. She has not come back down it, and I would have seen her if she had.',
+          night: 'Up the road, and that was this morning. She has not passed this bench since, and I have been on it all day.',
+        },
+      },
+      next: 'bye',
+    },
+    bye: {
+      text: {
+        any: 'Go on, then. And do come back and tell me how it went — I shall only invent something otherwise.',
+        rain: 'Go on. And come back and tell me, or I shall make it up and mine will be worse.',
+        storm: 'Go, before this gets any louder. And I want the whole of it afterwards, mind.',
+      },
+    },
+  },
+};
+
+const TULA_MET = {
   name: 'Tula',
   start: 'intro',
   nodes: {
@@ -165,6 +529,139 @@ export const TULA = {
   },
 };
 
+const TULA_DATE = {
+  name: 'Tula',
+  start: 'intro',
+  nodes: {
+    intro: {
+      text: {
+        clear: {
+          morning: 'She came past this bench at first light walking about a foot off the ground. I did not have to ask why.',
+          noon: 'She has been past three times in this heat with nowhere in particular to be. Three times.',
+          evening: 'The lamps are coming on and half the plaza already knows about your evening. Not from me. Mostly not from me.',
+          night: 'She was past here after dark, and she was not out for the air. You have got that girl thoroughly rattled.',
+        },
+        wind: {
+          morning: 'She stopped in this wind to tell me a thing she could have told me tomorrow. That is how I know.',
+          noon: 'I lost every third word of it to the wind and got the whole story anyway. It is about you.',
+          evening: 'It will drop at dusk and then everybody comes out, and every one of them will have heard by supper.',
+          night: 'Shutters banging, and that girl still out there somewhere too pleased to sit down.',
+        },
+        rain: {
+          morning: 'She stood in the rain to tell me and would not come under the eaves for it. In the rain!',
+          noon: 'Wet through and would not stop talking. I have never seen anybody so unbothered about being soaked.',
+          evening: 'Rain and lamplight and the whole plaza whispering. That is the picture people take away of this place.',
+          night: 'She has been out in this tonight already, and it was not the weather she came out for.',
+        },
+        storm: {
+          morning: 'She came out in this to tell me. I said sit down, girl. She did not sit down.',
+          noon: 'A storm at midday and she is worried about one thing, and the sky is not it.',
+          evening: 'Get under cover. And then tell me you have not gone and made a mess of the arrangements.',
+          night: 'Half the plaza is awake in this turning your evening over, and she will be one of them.',
+        },
+      },
+      next: 'ask',
+    },
+    ask: {
+      text: 'Now. She told me where the two of you are going. Do you want to know what she said about it?',
+      choices: [
+        { label: 'Tell me', next: 'tell' },
+        { label: 'No — let me find out', next: 'no' },
+        { label: 'You gossip', next: 'gossip' },
+      ],
+    },
+    tell: {
+      text: 'She said it was the one she was hoping you would pick. Then she made me swear not to repeat it, so do keep up.',
+      next: 'bye',
+    },
+    no: {
+      text: 'Oh, you are no fun at all. Go on then, go and be surprised, and I shall sit here knowing things.',
+      next: 'bye',
+    },
+    gossip: {
+      text: 'I am. Openly, and I have never once pretended otherwise. It is the only trade on this island that never slows down.',
+      next: 'bye',
+    },
+    bye: {
+      text: {
+        any: 'Off with you. And be early — she will be, and she will not say a word about it if you are not.',
+        rain: 'Off with you, and go the long way round the puddles. Turning up soaked is not the impression you want.',
+        storm: 'Go on. And if this does not blow over, have the wit to say so first rather than stand about being brave.',
+      },
+    },
+  },
+};
+
+const TULA_GONE = {
+  name: 'Tula',
+  start: 'intro',
+  nodes: {
+    intro: {
+      text: {
+        clear: {
+          morning: 'She came down the road at first light with her bag on her shoulder, and she did not stop at this bench.',
+          noon: 'You are the third person to come and stand here today. The other two only wanted to know. You want her back.',
+          evening: 'The plaza goes gold in a minute and I have nobody to be smug at about it. She has gone, love.',
+          night: 'Late again, and this time you are not looking for her. You are just walking. I know the difference.',
+        },
+        wind: {
+          morning: 'She went out on this wind. It is the one thing about the whole business I can call good news.',
+          noon: 'Do not stand out there in it. She is not going to come back over that hill because you waited in the wind.',
+          evening: 'It will drop at dusk, and it will still be quiet, and you will still notice. I am sorry.',
+          night: 'The shutters have been at it all night and I have not slept either. Sit down a minute.',
+        },
+        rain: {
+          morning: 'She was away before this came in. She always did have the luck of the weather, that one.',
+          noon: 'Under the eaves, come on. You are no use to anybody stood out there being rained on over a girl.',
+          evening: 'Rain and lamplight and one fewer person on the plaza. It is a different picture entirely.',
+          night: 'Get under here. She would have something to say about the state of you, and she would be right.',
+        },
+        storm: {
+          morning: 'She was gone before the first of it. Whatever else you are carrying, you can set that part down.',
+          noon: 'No, she is not out in that. She went hours ahead of it, and she went well.',
+          evening: 'Get under cover. Whatever you are chewing over, you can chew it over dry.',
+          night: 'A storm and an empty plaza. This island is a good deal larger than it was yesterday, is it not.',
+        },
+      },
+      next: 'ask',
+    },
+    ask: {
+      text: 'Ask me, then. Everybody else has, and none of them had the right to.',
+      choices: [
+        { label: 'Where did she go?', next: 'where' },
+        { label: 'Did she say goodbye?', next: 'goodbye' },
+        { label: 'Nothing. Never mind', next: 'nothing' },
+      ],
+    },
+    where: {
+      text: 'North, with the tide. She told me, which is not the same as telling me to pass it on — and here I am passing it on.',
+      next: 'bye',
+    },
+    goodbye: {
+      text: 'To me she did. To you she said something rather better than goodbye, and you were there for it, so I shall not repeat it.',
+      next: 'bye',
+    },
+    nothing: {
+      text: 'Never mind. Right. Sit down anyway — I shall talk about thread and you can let me, and that is a kindness both ways.',
+      next: 'bye',
+    },
+    bye: {
+      text: {
+        any: 'She was not running off from you. She was giving you room, and there is a world of difference in it.',
+        rain: 'She was giving you room, not running. Now go and be dry, and think about it under a roof.',
+        storm: 'She was giving you room, not running. Now get in out of that, before I have two of you to worry about.',
+      },
+    },
+  },
+};
+
+export const TULA = {
+  searching: TULA_SEARCHING,
+  met: TULA_MET,
+  date: TULA_DATE,
+  gone: TULA_GONE,
+};
+
 /*
   The drifter on the south beach. His opening line carries the same sixteen as
   the others, but doing double duty: the weather across, and how far through a
@@ -173,8 +670,107 @@ export const TULA = {
 
   npc.js works the same curve into how he walks — see drunkAt() — so the state
   of him is legible before he has said a word, and the line only confirms it.
+
+  He has one chapter of his own and it is the searching one, where his whole
+  contribution is that he has nothing to contribute. That is not him being cut
+  out of the story — it is the joke, and it needs him: he is the one man on this
+  island who has stared at the open sea from dawn to dusk, and he could not tell
+  you a single thing that has been on it.
+
+  So he gets no `date` and no `gone`. Nobody tells him anything, he was never
+  going to notice on his own, and a drifter who suddenly has views on somebody
+  else's love life is a different and much worse character. After the search he
+  is simply the beach as it always was, which is its own kind of comfort at the
+  end — see the bag below, where three of the four chapters are the same script.
 */
-export const BRAM = {
+const BRAM_SEARCHING = {
+  name: 'Bram',
+  start: 'intro',
+  nodes: {
+    intro: {
+      text: {
+        clear: {
+          morning: 'Morning. Whatever it is you are about to ask me, I was asleep for it. Just so we start honest.',
+          noon: 'Ahh, sit down. You have got the face of a man with a question and I have got the entire afternoon.',
+          evening: 'Now then. You will have one, and then you will tell me what you are after. That is the order it goes in.',
+          night: 'Shh. She\'s talking. If you have lost something, ask her — everything on this beach has been hers at one time or another.',
+        },
+        wind: {
+          morning: 'Wind off the water. Clears the head. Ask me twice, I shall only hear the second one.',
+          noon: 'Whoa — hold your feet, friend. And hold your question, I am busy standing up.',
+          evening: 'Wind\'s got a lean on it tonight. So have I. Ask me something easy.',
+          night: 'S\'blowing! Ask me anything at all, I shall answer it wrong and we will both have a lovely time.',
+        },
+        rain: {
+          morning: 'Rain. Good. And you want something. Everybody wants something in the rain.',
+          noon: 'You will get wet stood there working out how to say it. I am already wet. Say it.',
+          evening: 'Warm rain and a man with a question. Go on then, out with it.',
+          night: 'Rain, dark, and you down here on the sand. Nobody comes down here on purpose. Nobody.',
+        },
+        storm: {
+          morning: 'Storm\'s up and everything I own is under that log. Ask quick.',
+          noon: 'Don\'t stand about on open sand in this! Ask me from over there, I shall lean.',
+          evening: 'Whoa. Whoa. She\'s angry tonight. Whatever it is, it will keep, and so will I.',
+          night: 'Lightning — there! Go on, ask me in the gaps. That\'s how we do it out here.',
+        },
+      },
+      next: 'q',
+    },
+    q: {
+      name: 'You',
+      text: 'I am looking for a girl. She came in on a boat this morning.',
+      next: 'boat',
+    },
+    boat: {
+      text: 'A boat. This morning. Right. Right, right, right.',
+      next: 'blank',
+    },
+    // The whole of him, in one line. He has had the best seat on the island all
+    // day and has been looking at entirely the wrong thing with it.
+    blank: {
+      text: 'No. Nothing. I have watched that sea since the sun came up and I could not tell you one single thing that has been on it.',
+      next: 'ask',
+    },
+    ask: {
+      text: 'Go on though. Try me. Something might shake loose.',
+      choices: [
+        { label: 'You saw nothing?', next: 'nothing' },
+        { label: 'It was a small boat', next: 'small' },
+        { label: 'Never mind', next: 'mind' },
+      ],
+    },
+    nothing: {
+      text: 'Not a thing. In fairness, I was not looking for boats. I was looking at the sea. Different job entirely.',
+      next: 'tula',
+    },
+    small: {
+      text: 'They are all small from here. That is the trouble with here. Lovely place, no scale to it.',
+      next: 'tula',
+    },
+    mind: {
+      text: 'No, no — wait. I want to help. I do want to help. I am simply no use. Those are two separate things and I insist on both.',
+      next: 'tula',
+    },
+    // He cannot answer, so he passes you to somebody who can. Even at his worst
+    // he would rather you got where you were going.
+    tula: {
+      text: {
+        any: 'Tula. Up on the plaza, on the bench. She sees everything and remembers the unkind half of it. Ask her.',
+        storm: 'Tula — plaza — the bench under the eaves. She\'ll be out in this, she is always out in this. Go on.',
+      },
+      next: 'bye',
+    },
+    bye: {
+      text: {
+        any: 'Go on then. Mind the sharp bits, and I hope she is worth the walk. They generally are.',
+        rain: 'Off you go. And don\'t shelter under the palms, they drop things on people in love.',
+        storm: 'Go! I\'m fine. I\'m always fine. Find your girl and don\'t come back down here till you have.',
+      },
+    },
+  },
+};
+
+const BRAM_MET = {
   name: 'Bram',
   start: 'intro',
   nodes: {
@@ -236,6 +832,25 @@ export const BRAM = {
     },
   },
 };
+
+// Three of these are the same script on purpose — see the note above. The south
+// beach does not hear about any of it, and would not have anything to say if it
+// did.
+export const BRAM = {
+  searching: BRAM_SEARCHING,
+  met: BRAM_MET,
+  date: BRAM_MET,
+  gone: BRAM_MET,
+};
+
+/**
+ * Which of a villager's four scripts is the one for right now.
+ *
+ * Falls back to the ambient chapter rather than to nothing, so a stage that
+ * grows a new name in story.js gets the island as it usually is instead of a
+ * villager who has suddenly stopped being talkable.
+ */
+export const villager = (who, chapter) => who[chapter] ?? who.met;
 
 /*
   The opening, played once on load before the player has the island.
