@@ -77,21 +77,21 @@ export const PALETTE = {
   // shells, bleached against the sand
   E: '#f4ead6',
   H: '#c9ab7c',         // ridge / growth line — the shape reads from these
-  // Amy. Auburn and rose, because the two villagers already own brown-and-blue
-  // and straw-and-teal, and the one thing her sprite has to do before it does
-  // anything else is not be mistaken for either of them.
-  // Authored light, and it has to be: the sun is behind the world, so every
-  // camera-facing pixel of her is already in shadow before the side faces darken
-  // it again. A believable auburn picked here reads as a black hood on screen —
-  // the same reason the palm fronds above are lighter than they look.
-  // Copper rather than scarlet, and the gap is deliberate: the hero's cap is
-  // `r` above, and a girl whose hair is the player's own red is a girl you spend
-  // the first second of every encounter double-taking at.
-  A: '#bd6a38',         // hair, lit
-  D: '#8a4520',         // hair, shade
-  I: '#e8628c',         // dress, lit
-  M: '#a63a63',         // dress, shade
-  O: '#f7c3d4',         // the pale trim across the bodice
+  /*
+    Amy, and she is two inks and an outline — no shade tone for either, which is
+    the whole reason her sprite reads the way it does. Everything else in this
+    file ramps two or three values per material; she is drawn flat, and the shape
+    carries all of it. Adding a shadow tone to "improve" her is how you lose it.
+
+    The apricot is her face *and* her dress, one colour for both, which is the
+    other thing that makes her read as drawn rather than modelled.
+
+    Authored light, as everything here is: the sun sits behind the world, so
+    every camera-facing pixel is already in shadow before the side faces darken
+    it again — the same reason the palm fronds above are lighter than they look.
+  */
+  A: '#b5834e',         // hair
+  I: '#f2a850',         // skin and dress alike
 };
 
 // ---------------------------------------------------------------- tile art
@@ -1253,169 +1253,181 @@ const BUM_RIGHT_B = [
   Amy.
 
   Same 16x16 grid and the same hard outline as everybody else, so she belongs to
-  this cast — but the silhouette is doing more work here than on any other sprite
-  in the file, because she is the one character the player has to pick out of a
-  beach at a glance and then keep looking at.
+  this cast — but she is drawn to a reference rather than to the house style, and
+  the differences are the point rather than a slip:
 
-  Three things carry it, and all three are read before any colour is:
-  hair that falls past the shoulders and is wider than the head, so the outline
-  is not the cap-and-shoulders shape every other person here has; a skirt that
-  flares two pixels past the waist on the bottom two rows, which is the only
-  widening silhouette in the whole cast; and no hat at all, where the hero has a
-  cap and both villagers have a brim or a shawl. Auburn and rose then say which
-  girl she is, but the shape has already said that she is one.
+  - The head takes eleven of the sixteen rows, where everybody else here gets
+    about eight. She is the one face the player is asked to look at for twenty
+    lines at a time, and a face needs room to be a face.
+
+  - Which buys actual eyes: two pixels across and two down, with a white
+    catchlight in each. Every other character in this file has a single dark
+    pixel per eye, which is enough to say "person" and not nearly enough to say
+    "this person". The blush and the mouth are there for the same reason.
+
+  - Hair parted down the middle, falling either side of the face and flaring past
+    the head at the jaw — so the outline is not the cap-and-shoulders shape
+    everybody else has, and no hat, where the hero has a cap and the two
+    villagers have a brim and a shawl.
+
+  - No feet. The dress simply rounds off, as it does in the reference, and the
+    walk reads from the hem swaying a pixel rather than from legs. On a sprite
+    with a skirt this hem sway is the better cycle anyway.
+
+  Brown and apricot then say which girl she is, but the shape has already said
+  she is one.
 */
 
 const AMY_DOWN_A = [
   '.....kkkkkk.....',
   '....kAAAAAAk....',
   '...kAAAAAAAAk...',
-  '..kDAAAAAAAADk..',
-  '..kDAssssssADk..',
-  '..kDAskssksADk..',
-  '..kDAssSSssADk..',
-  '..kDAAssssAADk..',
-  '..kDAAAssAAADk..',
-  '..kDAIIIIIIADk..',
-  '..kDAIOOOOIADk..',
-  '..kDIIIIIIIIDk..',
-  '..kIIIIIIIIIIk..',
-  '.kIIIIIIIIIIIIk.',
-  '.kMMMMMMMMMMMMk.',
-  '...kssk..kssk...',
+  '...kAAkAAkAAk...',
+  '..kAAkIkkIkAAk..',
+  '..kAkIIIIIIkAk..',
+  '..kkIIkIIkIIkk..',
+  '..kkIIkIIkIIkk..',
+  '..kAkIIAAIIkAk..',
+  '..kkAkkkkkkAkk..',
+  '.kkIkIkkkkIkIkk.',
+  '.kIIkIIIIIIkIIk.',
+  '..kkIIIIIIIIkk..',
+  '...kIIIIIIIIk...',
+  '....kIIIIIIk....',
+  '.....kkkkkk.....',
 ];
 
 const AMY_DOWN_B = [
   '.....kkkkkk.....',
   '....kAAAAAAk....',
   '...kAAAAAAAAk...',
-  '..kDAAAAAAAADk..',
-  '..kDAssssssADk..',
-  '..kDAskssksADk..',
-  '..kDAssSSssADk..',
-  '..kDAAssssAADk..',
-  '..kDAAAssAAADk..',
-  '..kDAIIIIIIADk..',
-  '..kDAIOOOOIADk..',
-  '..kDIIIIIIIIDk..',
-  '..kIIIIIIIIIIk..',
-  '..kIIIIIIIIIIIIk',
-  '..kMMMMMMMMMMMMk',
-  '....kssk..kssk..',
+  '...kAAkAAkAAk...',
+  '..kAAkIkkIkAAk..',
+  '..kAkIIIIIIkAk..',
+  '..kkIIkIIkIIkk..',
+  '..kkIIkIIkIIkk..',
+  '..kAkIIAAIIkAk..',
+  '..kkAkkkkkkAkk..',
+  '.kkIkIkkkkIkIkk.',
+  '.kIIkIIIIIIkIIk.',
+  '..kkIIIIIIIIkk..',
+  '...kIIIIIIIIk...',
+  '.....kIIIIIIk...',
+  '......kkkkkk....',
 ];
 
 const AMY_UP_A = [
   '.....kkkkkk.....',
   '....kAAAAAAk....',
   '...kAAAAAAAAk...',
-  '..kDAAAAAAAADk..',
-  '..kDAAAAAAAADk..',
-  '..kDADAAAADADk..',
-  '..kDAAAAAAAADk..',
-  '..kDADAAAADADk..',
-  '..kDAAAAAAAADk..',
-  '..kDAIIIIIIADk..',
-  '..kDAIIIIIIADk..',
-  '..kDIIIIIIIIDk..',
-  '..kIIIIIIIIIIk..',
-  '.kIIIIIIIIIIIIk.',
-  '.kMMMMMMMMMMMMk.',
-  '...kssk..kssk...',
+  '...kAAkAAkAAk...',
+  '..kAAAkAAkAAAk..',
+  '..kAAAAAAAAAAk..',
+  '..kkAAAAAAAAkk..',
+  '..kkAAAAAAAAkk..',
+  '..kAkAAAAAAkAk..',
+  '..kkAkkkkkkAkk..',
+  '.kkIkIkkkkIkIkk.',
+  '.kIIkIIIIIIkIIk.',
+  '..kkIIIIIIIIkk..',
+  '...kIIIIIIIIk...',
+  '....kIIIIIIk....',
+  '.....kkkkkk.....',
 ];
 
 const AMY_UP_B = [
   '.....kkkkkk.....',
   '....kAAAAAAk....',
   '...kAAAAAAAAk...',
-  '..kDAAAAAAAADk..',
-  '..kDAAAAAAAADk..',
-  '..kDADAAAADADk..',
-  '..kDAAAAAAAADk..',
-  '..kDADAAAADADk..',
-  '..kDAAAAAAAADk..',
-  '..kDAIIIIIIADk..',
-  '..kDAIIIIIIADk..',
-  '..kDIIIIIIIIDk..',
-  '..kIIIIIIIIIIk..',
-  '..kIIIIIIIIIIIIk',
-  '..kMMMMMMMMMMMMk',
-  '....kssk..kssk..',
+  '...kAAkAAkAAk...',
+  '..kAAAkAAkAAAk..',
+  '..kAAAAAAAAAAk..',
+  '..kkAAAAAAAAkk..',
+  '..kkAAAAAAAAkk..',
+  '..kAkAAAAAAkAk..',
+  '..kkAkkkkkkAkk..',
+  '.kkIkIkkkkIkIkk.',
+  '.kIIkIIIIIIkIIk.',
+  '..kkIIIIIIIIkk..',
+  '...kIIIIIIIIk...',
+  '.....kIIIIIIk...',
+  '......kkkkkk....',
 ];
 
 const AMY_LEFT_A = [
   '.....kkkkkk.....',
   '....kAAAAAAk....',
   '...kAAAAAAAAk...',
-  '..kssAAAAAAADk..',
-  '..ksksAAAAAADk..',
-  '..ksssAAAAAADk..',
-  '..kSssAAAAAADk..',
-  '...kssAAAAADk...',
-  '...kIIAAAAADk...',
-  '..kIOIIAAAADk...',
-  '..kIIIIIIAADk...',
-  '..kIIIIIIIIAk...',
-  '.kIIIIIIIIIIk...',
-  '.kIIIIIIIIIIk...',
-  '.kMMMMMMMMMMk...',
-  '...kssk.........',
+  '...kIIAAAAAAk...',
+  '..kIIIAAAAAAAk..',
+  '..kIIIAAAAAAAk..',
+  '..kkIkIIAAAAkk..',
+  '..kkIkIIAAAAkk..',
+  '..kIAIIAAAAAAk..',
+  '..kkAkkkkkkAkk..',
+  '.kkIkIkkkkIkIkk.',
+  '.kIIkIIIIIIkIIk.',
+  '..kkIIIIIIIIkk..',
+  '...kIIIIIIIIk...',
+  '....kIIIIIIk....',
+  '.....kkkkkk.....',
 ];
 
 const AMY_LEFT_B = [
   '.....kkkkkk.....',
   '....kAAAAAAk....',
   '...kAAAAAAAAk...',
-  '..kssAAAAAAADk..',
-  '..ksksAAAAAADk..',
-  '..ksssAAAAAADk..',
-  '..kSssAAAAAADk..',
-  '...kssAAAAADk...',
-  '...kIIAAAAADk...',
-  '..kIOIIAAAADk...',
-  '..kIIIIIIAADk...',
-  '..kIIIIIIIIAk...',
-  '..kIIIIIIIIIIk..',
-  '..kIIIIIIIIIIk..',
-  '..kMMMMMMMMMMk..',
-  '.....kssk.......',
+  '...kIIAAAAAAk...',
+  '..kIIIAAAAAAAk..',
+  '..kIIIAAAAAAAk..',
+  '..kkIkIIAAAAkk..',
+  '..kkIkIIAAAAkk..',
+  '..kIAIIAAAAAAk..',
+  '..kkAkkkkkkAkk..',
+  '.kkIkIkkkkIkIkk.',
+  '.kIIkIIIIIIkIIk.',
+  '..kkIIIIIIIIkk..',
+  '...kIIIIIIIIk...',
+  '.....kIIIIIIk...',
+  '......kkkkkk....',
 ];
 
 const AMY_RIGHT_A = [
   '.....kkkkkk.....',
   '....kAAAAAAk....',
   '...kAAAAAAAAk...',
-  '..kDAAAAAAAssk..',
-  '..kDAAAAAAsksk..',
-  '..kDAAAAAAsssk..',
-  '..kDAAAAAAssSk..',
-  '...kDAAAAAssk...',
-  '...kDAAAAAIIk...',
-  '...kDAAAAIIOIk..',
-  '...kDAAIIIIIIk..',
-  '...kAIIIIIIIIk..',
-  '...kIIIIIIIIIIk.',
-  '...kIIIIIIIIIIk.',
-  '...kMMMMMMMMMMk.',
-  '.........kssk...',
+  '...kAAAAAAIIk...',
+  '..kAAAAAAAIIIk..',
+  '..kAAAAAAAIIIk..',
+  '..kkAAAAIIkIkk..',
+  '..kkAAAAIIkIkk..',
+  '..kAAAAAAIIAIk..',
+  '..kkAkkkkkkAkk..',
+  '.kkIkIkkkkIkIkk.',
+  '.kIIkIIIIIIkIIk.',
+  '..kkIIIIIIIIkk..',
+  '...kIIIIIIIIk...',
+  '....kIIIIIIk....',
+  '.....kkkkkk.....',
 ];
 
 const AMY_RIGHT_B = [
   '.....kkkkkk.....',
   '....kAAAAAAk....',
   '...kAAAAAAAAk...',
-  '..kDAAAAAAAssk..',
-  '..kDAAAAAAsksk..',
-  '..kDAAAAAAsssk..',
-  '..kDAAAAAAssSk..',
-  '...kDAAAAAssk...',
-  '...kDAAAAAIIk...',
-  '...kDAAAAIIOIk..',
-  '...kDAAIIIIIIk..',
-  '...kAIIIIIIIIk..',
-  '..kIIIIIIIIIIk..',
-  '..kIIIIIIIIIIk..',
-  '..kMMMMMMMMMMk..',
-  '.......kssk.....',
+  '...kAAAAAAIIk...',
+  '..kAAAAAAAIIIk..',
+  '..kAAAAAAAIIIk..',
+  '..kkAAAAIIkIkk..',
+  '..kkAAAAIIkIkk..',
+  '..kAAAAAAIIAIk..',
+  '..kkAkkkkkkAkk..',
+  '.kkIkIkkkkIkIkk.',
+  '.kIIkIIIIIIkIIk.',
+  '..kkIIIIIIIIkk..',
+  '...kIIIIIIIIk...',
+  '...kIIIIIIk.....',
+  '....kkkkkk......',
 ];
 
 /**
