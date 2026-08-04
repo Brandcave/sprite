@@ -876,8 +876,28 @@ export const OPENING = {
       text: 'A year at sea now, and you had stopped counting the islands somewhere around the ninth.',
       next: 'boat',
     },
+    /*
+      Two lines here make claims about the world, and a claim can be wrong. This
+      one said "this morning" whatever the sky was doing and whatever hour you
+      loaded into, so a player arriving at midnight was told about a morning that
+      had not happened yet — which is the same failure the villagers' greetings
+      are written to avoid, in the first minute of the game, where it is least
+      affordable.
+
+      Nobody speaks these, so there is no voice to keep. All that is wanted is
+      that the sentence is not contradicted by what is out of the window.
+    */
     boat: {
-      text: 'Then this morning a boat crossed yours, close enough to hear its ropes — and there was a girl at the rail of it.',
+      // Time only, so the whole table hangs off `any` — the outer key is the
+      // sky, and this line does not care what the sky is doing.
+      text: {
+        any: {
+          morning: 'Then this morning a boat crossed yours, close enough to hear its ropes — and there was a girl at the rail of it.',
+          noon: 'Then this morning a boat crossed yours, close enough to hear its ropes — and there was a girl at the rail of it.',
+          evening: 'Then this afternoon a boat crossed yours, close enough to hear its ropes — and there was a girl at the rail of it.',
+          night: 'Then, before the light went, a boat crossed yours, close enough to hear its ropes — and there was a girl at the rail of it.',
+        },
+      },
       next: 'glimpse',
     },
     glimpse: {
@@ -892,8 +912,14 @@ export const OPENING = {
       text: 'Your hull touched sand an hour ago. Tidewatch: two houses, a fountain, and a road running north to the shore.',
       next: 'find',
     },
+    // ...and the other one. "Out of the weather" is a fine thing to say about
+    // somebody in a storm and an odd thing to say about somebody on a clear
+    // afternoon, so the clear sky gets its own reason for her being indoors.
     find: {
-      text: 'Her boat put in here as well. She is somewhere on this island, out of the weather. Go and find her.',
+      text: {
+        clear: 'Her boat put in here as well. She is somewhere on this island, under one roof or another. Go and find her.',
+        any: 'Her boat put in here as well. She is somewhere on this island, out of the weather. Go and find her.',
+      },
     },
   },
 };
@@ -916,10 +942,22 @@ export const OPENING = {
     `name: null` are neither of them — that is the game saying what happened,
     and it gets no plate at all because nobody said it.
 
-  - Only the opening line of each carries a weather table. She is not here to
-    tell you about the island, and a woman working up to something does not stop
-    to mention the wind. But she does arrive into whatever the day is doing, and
-    the first line is where that shows.
+  - She takes the weather where the weather is in the room with her, and nowhere
+    else. That is a narrower rule than the villagers work to and it is the whole
+    of the difference between them: a villager's job is to be the island talking,
+    so every line of theirs can afford to notice the sky. Hers is not.
+
+    So the tables go on the beats that are physically happening — arriving,
+    sheltering, sitting down, leaving, lying back in the sand to look at
+    something that may or may not be there — and on the sky itself when it goes
+    off over the water at the end. Between `never` and `in` there is not one,
+    across sixteen lines, because that is the confession, and a woman working up
+    to something does not stop to mention the wind. If a table there would put a
+    remark about the rain between "my father was never there" and her answer to
+    it, the line does not get a table.
+
+    Read the other way round: everything she says that could be wrong about the
+    world now varies, and nothing that would be interrupted by the world does.
 
   And a note on her voice, because it is the whole of her and it is easy to write
   the wrong one by accident. Amy is strong and her language is soft. Those are
@@ -948,12 +986,35 @@ export const AMY_HOUSE = {
   name: 'Amy',
   start: 'intro',
   nodes: {
+    // She is sheltering in a stranger's house, so what she is sheltering *from*
+    // is the first thing about her — and how odd it is to be doing it depends
+    // entirely on the hour. At noon it is sensible. After dark it wants saying.
     intro: {
       text: {
-        clear: 'Oh — hello. I let myself in out of the sun; I hope that is all right. I did not think anybody else was out in it.',
-        wind: 'Come in, come in — and pull that to behind you. Half the beach has followed me in as it is.',
-        rain: 'You are soaked through. Come all the way in, there is dry floor over this side.',
-        storm: 'Come in and sit down. Nobody should be out in that, and I would rather not be the only one in here listening to it.',
+        clear: {
+          morning: 'Oh — hello. I let myself in out of the early sun; I hope that is all right. I did not think anybody else was up yet.',
+          noon: 'Oh — hello. I let myself in out of the sun; I hope that is all right. I did not think anybody else was out in it.',
+          evening: 'Oh — hello. Come in. The light through that window at this hour is the only reason I am still standing here.',
+          night: 'Oh — hello. I know quite well how this looks, a stranger in a dark house. I came in to sit down and then I simply stayed.',
+        },
+        wind: {
+          morning: 'Come in, come in — and pull that to behind you. It has been blowing since before it was properly light.',
+          noon: 'Come in, come in — and pull that to behind you. Half the beach has followed me in as it is.',
+          evening: 'Come in and shut it. It drops when the sun does, they keep telling me, and it has shown no sign of starting.',
+          night: 'Come in. Those shutters have been going the whole night and I would rather not sit listening to them on my own.',
+        },
+        rain: {
+          morning: 'You are soaked through, and it is barely light. Come all the way in, there is dry floor over this side.',
+          noon: 'You are soaked through. Come all the way in, there is dry floor over this side.',
+          evening: 'You are soaked through. Come in — it will be dark before this passes, and there is dry floor this side.',
+          night: 'You are soaked, and it is black as anything out there. Come all the way in before you put a foot through something.',
+        },
+        storm: {
+          morning: 'Come in and sit down. It has been like this since first light and nobody should be out in it.',
+          noon: 'Come in and sit down. Nobody should be out in that, and I would rather not be the only one in here listening to it.',
+          evening: 'Come in and sit down. It will be dark on top of all that shortly, and I would rather have the company before it is.',
+          night: 'Come in. Storm and no light to speak of — I have been sat here listening to it, and I am very glad it is not only me any more.',
+        },
       },
       next: 'name',
     },
@@ -1001,12 +1062,35 @@ export const AMY_HOUSE = {
       text: 'They all think that on the first day. I would like to be wrong about you.',
       next: 'off',
     },
+    // Leaving is the other end of arriving, and it named the hour outright — she
+    // cannot have been under a roof "for one afternoon" at first light. What she
+    // is walking out into is hers to be stubborn about, which is what the two
+    // wet variants are for.
     off: {
-      text: 'Anyway. I should go — I have been under a roof long enough for one afternoon.',
+      text: {
+        rain: 'Anyway. I should go — and no, do not look at me like that. A little rain has never drowned anybody.',
+        storm: 'Anyway. I should go. Not far, and not into the worst of it, and I will not be talked out of it.',
+        any: {
+          morning: 'Anyway. I should go — I did not come the whole way here to spend the morning indoors.',
+          noon: 'Anyway. I should go. I have been under a roof long enough for one afternoon.',
+          evening: 'Anyway. I should go, while there is still light enough to see the road by.',
+          night: 'Anyway. I should go. It is late, and I have been under this roof since the sun was up.',
+        },
+      },
       next: 'bye',
     },
+    // The line that sets up the second meeting, so it had better sound like a
+    // place worth walking to at whatever hour she says it.
     bye: {
-      text: 'The fountain, though. If you find yourself out that way. Everybody ends up at the fountain sooner or later.',
+      text: {
+        rain: 'The fountain, though. Rain or no rain — everybody ends up at the fountain sooner or later, and I am no different.',
+        storm: 'The fountain, though. When this has blown itself out. Everybody ends up there sooner or later.',
+        any: {
+          evening: 'The fountain, though. It goes gold when the lamps come on, and I should rather like somebody to see that with.',
+          night: 'The fountain, though. It is lit all night. If you find yourself out that way — and I hope that you do.',
+          any: 'The fountain, though. If you find yourself out that way. Everybody ends up at the fountain sooner or later.',
+        },
+      },
     },
   },
 };
@@ -1015,6 +1099,13 @@ export const AMY_FOUNTAIN = {
   name: 'Amy',
   start: 'intro',
   nodes: {
+    /*
+      Sixteen ways of saying "you came", which is the only thing this line has to
+      do. She asked him to be somewhere and he is, and what that cost him is
+      entirely a question of what the sky was doing on the way over — so the
+      worse the weather and the stranger the hour, the more it means, and the
+      more she says about it.
+    */
     intro: {
       text: {
         clear: {
@@ -1023,7 +1114,24 @@ export const AMY_FOUNTAIN = {
           evening: 'You came, and at the best hour for it. Give it a minute and the whole plaza goes gold.',
           night: 'You came. This late, and all the way out here. That was either very sweet of you or very silly.',
         },
-        any: 'You came. In this, of all things. That was either very sweet of you or very silly, and I have not settled which.',
+        wind: {
+          morning: 'You came, and in this. I have been holding my hair down since first light and I have entirely given it up.',
+          noon: 'You came. Sit this side of the curb — the fountain throws half of itself at you on the other, in this.',
+          evening: 'You came. It drops when the sun does, they keep promising me, and then this will be a lovely place to sit.',
+          night: 'You came, in the dark and in this. I could hear the palms from here, and I still heard you coming up the road.',
+        },
+        rain: {
+          morning: 'You came, and it is raining, and it is barely light. I do not know what to do with that except be glad.',
+          noon: 'You came, in this. Sit down anyway — the curb is wet, I have been on it a while, and I do not mind a bit.',
+          evening: 'You came. Rain, lamplight, and nobody else out at all. I could not have arranged it better if I had tried.',
+          night: 'You came. In the rain, this late. That was either very sweet of you or very silly, and I have not settled which.',
+        },
+        storm: {
+          morning: 'You came out in this, at this hour. I am not going to pretend I am anything other than pleased about it.',
+          noon: 'You came out in a storm to sit by a fountain. I want that said plainly, so that we have both heard it.',
+          evening: 'You came out in this. Stand this side of me — the wind is coming round the water and it is worse over there.',
+          night: 'You came. Storm, dark, and the whole island indoors except the two of us. That was either very sweet or very silly.',
+        },
       },
       next: 'say',
     },
@@ -1050,8 +1158,16 @@ export const AMY_FOUNTAIN = {
       text: 'Then I will try.',
       next: 'where',
     },
+    // All three doors stay open in all four weathers — refusing her the picnic
+    // because it is raining would be the game overruling her, and she is not a
+    // woman who checks the sky before deciding what she wants. What changes is
+    // that she says so.
     where: {
-      text: 'Then take me somewhere. Somewhere you have thought about. Where are we going?',
+      text: {
+        rain: 'Then take me somewhere. Somewhere you have thought about — and I do not care in the least that it is raining. Where are we going?',
+        storm: 'Then take me somewhere. Somewhere you have thought about. This will have blown itself out by then. Where are we going?',
+        any: 'Then take me somewhere. Somewhere you have thought about. Where are we going?',
+      },
       choices: [
         { label: 'Dinner, indoors', next: 'dinner' },
         { label: 'Picnic at the lagoon', next: 'picnic' },
@@ -1059,10 +1175,18 @@ export const AMY_FOUNTAIN = {
       ],
     },
     dinner: {
-      text: 'The house with the long table, then. I will be there before you are — I am always early, it is a terrible habit.',
+      text: {
+        any: 'The house with the long table, then. I will be there before you are — I am always early, it is a terrible habit.',
+        rain: 'The house with the long table, then. Somewhere with a roof on it — you have talked me into being sensible for once.',
+        storm: 'The house with the long table, then. And thank you for picking the one with walls; I would not have.',
+      },
     },
     picnic: {
-      text: 'The lagoon, then. Bring something to eat, and please do not go to any trouble over it.',
+      text: {
+        any: 'The lagoon, then. Bring something to eat, and please do not go to any trouble over it.',
+        rain: 'The lagoon, then, rain and all. Bring something to eat, and please do not go to any trouble over it.',
+        storm: 'The lagoon, then — and if this is still doing that when you get there, we shall eat under a tree and call it an adventure.',
+      },
     },
     /*
       The one line in this file that reaches out of the box and changes the
@@ -1073,7 +1197,11 @@ export const AMY_FOUNTAIN = {
       keep it from where it was spoken.
     */
     stars: {
-      text: 'Then let it get dark. The top of the road, where it runs out into the sand — I will be waiting at the end of it.',
+      text: {
+        any: 'Then let it get dark. The top of the road, where it runs out into the sand — I will be waiting at the end of it.',
+        rain: 'Then let it get dark, and let this pass over — it always does. The top of the road, where it runs out into the sand.',
+        storm: 'Then let it get dark, and let this blow itself out. It always does. The top of the road, at the end of the sand.',
+      },
       cue: 'nightfall',
     },
   },
@@ -1097,9 +1225,32 @@ export const AMY_DATE = {
   name: 'Amy',
   start: 'dinner',
   nodes: {
+    /*
+      The three arrivals, and the three lines that hand over to the confession,
+      are where the tables live. That is not an even sprinkling — it is the first
+      and last thing said in each of the three places, and in between them there
+      is nothing, because in between them she is not looking out of the window.
+
+      Each spot takes the weather differently, which is most of the reason for
+      having three: the long table has a roof and hears the rain on it, the
+      lagoon has none and gets rained on, and the beach after dark was promised
+      stars that a storm will simply not provide. She does not mind about the
+      last one, and saying so out loud is the point of the variant.
+    */
+
     // ---- dinner, at the long table
     dinner: {
-      text: 'There you are. I have been here long enough to have named all six of these chairs, and I did not mind a bit.',
+      text: {
+        rain: 'There you are, and dripping. Sit — it has been coming down on that roof the entire time and I have rather liked it.',
+        storm: 'There you are. Shut it behind you and let the sky do as it likes. I have been in here naming all six of these chairs.',
+        wind: 'There you are. Listen to it going round the eaves. I have been in here naming chairs, and it has been perfect.',
+        any: {
+          morning: 'There you are, and the sun is barely up. I have been here long enough to have named all six of these chairs.',
+          noon: 'There you are. I have been here long enough to have named all six of these chairs, and I did not mind a bit.',
+          evening: 'There you are, and the lamps have just gone on outside. I have named all six of these chairs waiting on you.',
+          night: 'There you are. I have been sitting here in the dark naming chairs, and I got through all six of them.',
+        },
+      },
       next: 'dinner2',
     },
     dinner2: {
@@ -1123,7 +1274,17 @@ export const AMY_DATE = {
 
     // ---- a picnic on the lip of the lagoon
     picnic: {
-      text: 'You brought something. That was kind of you — I will admit I did not altogether expect it.',
+      text: {
+        rain: 'You brought something, and you brought it through the rain. Sit down before you tell me it was no trouble.',
+        storm: 'You came all the way down here in this, and you brought something. I am not going to say one word about the weather.',
+        wind: 'You brought something, and the wind has had half of it off the cloth already. Sit on that corner for me, would you.',
+        any: {
+          morning: 'You brought something, and at this hour. That was kind of you — I will admit I did not altogether expect it.',
+          noon: 'You brought something. That was kind of you — I will admit I did not altogether expect it.',
+          evening: 'You brought something, and you have brought it at exactly the right hour. Look at the colour of that water.',
+          night: 'You brought something, in the dark, down a path you have walked once in your life. That was kind of you.',
+        },
+      },
       next: 'picnic2',
     },
     picnic2: {
@@ -1141,13 +1302,38 @@ export const AMY_DATE = {
       next: 'picnic5',
     },
     picnic5: {
-      text: 'Oh, do not — you will ruin it. Come and sit; the water goes green just here when the light gets low.',
+      text: {
+        rain: 'Oh, do not — you will ruin it. Come and sit; the rain makes rings all over it and I could watch that all day.',
+        storm: 'Oh, do not — you will ruin it. Come under here with me and let it blow. I have no intention of going back up that path.',
+        any: {
+          morning: 'Oh, do not — you will ruin it. Come and sit; the water goes green just here once the sun is properly up.',
+          evening: 'Oh, do not — you will ruin it. Come and sit; the water goes green just here when the light gets low.',
+          night: 'Oh, do not — you will ruin it. Come and sit; it goes green just here in the daytime, so you will have to take my word for it.',
+          any: 'Oh, do not — you will ruin it. Come and sit; the water goes green just here when the light is right.',
+        },
+      },
       next: 'never',
     },
 
     // ---- the end of the road, where it meets the north sand, after dark
+    /*
+      Nearly always night — she asked for the stars and the sun was run down to
+      get them, so `nightfall` has already happened by the time anybody walks up
+      here. But it lands at 0.78 of the cycle and morning is at 1.0, which is
+      about five real minutes away, and a player who wanders off to look at the
+      lagoon on the way can spend them. So there is a dawn line, and it is the
+      better one: she waited the whole night out and says so lightly.
+    */
     stars: {
-      text: 'You came all the way back up the road in the dark. You did not have to do that.',
+      text: {
+        rain: 'You came all the way up the road in the rain, for stars, and there is not one to be had. Sit down anyway.',
+        storm: 'You came all the way up here in this. There is not a star in the sky and I do not care in the least.',
+        wind: 'You came all the way up the road in the dark, with this blowing sand at you the whole way. You did not have to do that.',
+        any: {
+          morning: 'You came all the way back up the road, and now the sky is going grey on us. You took your time. I waited.',
+          any: 'You came all the way back up the road in the dark. You did not have to do that.',
+        },
+      },
       next: 'stars2',
     },
     stars2: {
@@ -1164,8 +1350,16 @@ export const AMY_DATE = {
       text: 'I am going to keep doing that.',
       next: 'stars5',
     },
+    // She asked for stars and a storm has not got any. The whole of her is in
+    // what she does about that: not a word of complaint, and the invitation
+    // stands regardless — which is a better line than the one she gets on a
+    // clear night, and it only exists because the sky is allowed to ruin things.
     stars5: {
-      text: 'Lie back with me, then. You cannot see them properly stood up — and I would rather not be the only one on this beach looking foolish.',
+      text: {
+        rain: 'Lie back with me anyway. There is nothing at all to see and the sand is wet, and I would still rather be down here than not.',
+        storm: 'Come and sit close, then, with your back to it. We shall have the stars another night — I am not going anywhere.',
+        any: 'Lie back with me, then. You cannot see them properly stood up — and I would rather not be the only one on this beach looking foolish.',
+      },
       next: 'never',
     },
 
@@ -1237,9 +1431,20 @@ export const AMY_DATE = {
       cue: 'fireworks',
       next: 'sky',
     },
+    /*
+      The one line in the confession that gets a table, and it earns it by being
+      about the sky. The fireworks go off into whatever is up there — so through
+      rain they are better, and against a storm they are briefly louder than it,
+      and neither of those is a remark she is making. It is the game saying what
+      happened, which is why this node has no name plate.
+    */
     sky: {
       name: null,
-      text: 'And the sky over the water goes to pieces.',
+      text: {
+        rain: 'And the sky over the water goes to pieces, through the rain, which is somehow better.',
+        storm: 'And the sky over the water goes to pieces, and for a moment it is louder than the storm.',
+        any: 'And the sky over the water goes to pieces.',
+      },
       next: 'last',
     },
     // The last line, and then the box closes and she simply walks off — which
