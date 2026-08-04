@@ -6,6 +6,7 @@ import { DIRS, characterAt } from './character.js';
 import { Dialogue, message, partOfDay } from './dialogue.js';
 import { Chat } from './chat.js';
 import { Channel } from './channel.js';
+import { Toolbar } from './toolbar.js';
 import { ANOKA, TULA, SIGNS, WORN_SIGN } from './dialogue-scripts.js';
 import { VILLAGERS } from './art.js';
 import { Weather, DAY_LENGTH } from './weather.js';
@@ -185,7 +186,8 @@ const dialogue = new Dialogue(document.body, TOUCH
   ? { confirm: 'A', send: 'A', cancel: 'B' }
   : {});
 const chat = new Chat({ net, dialogue });
-const channel = new Channel({ net });
+const channel = new Channel({ net, hasCompany: () => net.online && remotes.size > 0 });
+const toolbar = new Toolbar([channel]);
 
 /*
   One line, two homes. Everything said in the room is logged in the panel;
@@ -331,7 +333,7 @@ const TALK_KEYS = new Set(['KeyZ', 'KeyE', 'Enter', 'Space']);
 function keyDown(code) {
   // Typing in the panel is not playing. Its field stops keys reaching here at
   // all, so this only catches the gap between clicking it and the first press.
-  if (channel.typing) return false;
+  if (toolbar.typing) return false;
   // A conversation swallows input: arrow keys drive the choice cursor, not the
   // hero, and nothing walks off mid-sentence.
   if (dialogue.active) {
@@ -443,8 +445,7 @@ function frame() {
   // Anything said to us while the box was busy has been queued rather than
   // thrown on screen over the top of whatever was there; this is where it lands.
   chat.drain();
-  // Nobody to talk to, no reason for somewhere to talk.
-  channel.show(net.online && remotes.size > 0);
+  toolbar.update();
   dialogue.showHint(!dialogue.active && facing()?.verb);
   touch?.showBack(dialogue.active);
   minimap?.update(player, remotes, npcs, net.id);
@@ -478,6 +479,6 @@ Object.assign(window, {
     applyTimeOfDay(dayT);
   },
   setWeather: (type) => weather.force(type),
-  reflection, puddles, sim, net, remotes, chat, channel, touch, minimap,
+  reflection, puddles, sim, net, remotes, chat, channel, toolbar, touch, minimap,
   weather,
 });

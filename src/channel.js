@@ -18,39 +18,26 @@ import { nameOf } from './identity.js';
   as a wall of text down one side of an island nobody can see any more.
 
   It is not there when you are alone, either. An empty chat box addressed to
-  nobody is furniture, and this island is meant to be worth being alone on.
+  nobody is furniture, and this island is meant to be worth being alone on —
+  which is now a matter of telling the toolbar this tool is unavailable, and
+  letting it take the button away.
+
+  This is a tool, in the sense toolbar.js means: an icon, a panel to type into,
+  and a stream that stays on screen whichever tool is selected. Messages have to
+  be readable while you are doing something else, so they are ambient rather
+  than part of the panel.
 */
 
 const LIFE = 14000;           // how long a line stays up
 const POP = 460;              // and how long it takes to burst when it goes
 const STACK = 3;              // most lines on screen at once
-const BOUNCE = 420;           // opening and closing the field
 const MAX_TEXT = 120;         // the relay's cap, so the field cannot overrun it
 
 const CSS = `
-.ch-root {
-  position: fixed; left: 16px; bottom: 16px; z-index: 9;
-  width: min(340px, 38vw);
-  display: flex; flex-direction: column; justify-content: flex-end; gap: 7px;
-  font: 500 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
-  pointer-events: none;
-}
-.ch-root[hidden] { display: none; }
-
-/* frosted glass, the same as the touch controls */
-.ch-pane {
-  background: rgba(20, 28, 48, 0.34);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
-  backdrop-filter: blur(14px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 8px 20px rgba(4, 8, 18, 0.35);
-  border-radius: 12px;
-  color: #eaf2ff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-}
-
 /* Bottom-anchored, so a new line arriving lifts the older ones rather than
    pushing the field down the screen. */
 .ch-stream { display: flex; flex-direction: column; justify-content: flex-end; gap: 7px; }
+.ch-stream[hidden] { display: none; }
 
 .ch-bubble {
   padding: 8px 11px 9px;
@@ -95,62 +82,22 @@ const CSS = `
 }
 .ch-bubble[data-private] .ch-who { color: #9fd0ff; }
 
-/*
-  Idle it is a button the size of its own icon; open it is somewhere to write.
-  The icon does not move between the two, so the panel grows out of the thing
-  you pressed rather than replacing it.
-*/
-.ch-entry {
-  display: flex; align-items: center; gap: 9px;
-  align-self: flex-start; width: 100%; padding: 8px 12px;
-  overflow: hidden; pointer-events: auto;
-  transition: width ${BOUNCE}ms cubic-bezier(0.34, 1.56, 0.64, 1),
-              padding ${BOUNCE}ms cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.ch-root[data-state="idle"] .ch-entry { width: 46px; padding: 8px; }
-
-.ch-toggle {
-  flex: none; display: grid; place-items: center;
-  width: 26px; height: 26px; padding: 0;
-  background: none; border: 0; color: #ffd47a; cursor: pointer;
-  pointer-events: auto;
-}
-.ch-toggle svg { width: 19px; height: 19px; display: block; }
-
-/* the whole thing springs a little as it opens and shuts */
-.ch-entry.ch-boing { animation: ch-boing ${BOUNCE}ms cubic-bezier(0.34, 1.56, 0.64, 1); }
-@keyframes ch-boing {
-  0% { transform: scale(0.88); }
-  55% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
+.ch-entry { display: flex; align-items: center; gap: 9px; padding: 9px 12px; pointer-events: auto; }
+.ch-prompt { color: #ffd47a; }
 
 .ch-field {
   flex: 1; min-width: 0; padding: 0;
   font: inherit; color: #f4f8ff; background: none; border: 0; outline: none;
   caret-color: #ffd47a;
   -webkit-user-select: text; user-select: text;
-  transition: opacity 180ms ease;
 }
-.ch-root[data-state="idle"] .ch-field { opacity: 0; pointer-events: none; }
 .ch-field::placeholder { color: rgba(234, 242, 255, 0.45); }
 
 /*
-  A phone has thumbs at the bottom and a keyboard that covers half the screen,
-  so the panel lives at the top instead — where nothing else is, and where the
-  keyboard cannot reach it. Everything then runs the other way up: the field on
-  top, and lines arriving beneath it and pushing the older ones down.
-
-  Both directions keep the newest line against the field, which is the part that
-  matters. You look where you type.
+  On a phone the bar is at the top and everything hangs below it, so the stream
+  runs the other way up too: newest against the bar, older ones pushed down.
+  Both directions keep the newest line nearest the thing you are looking at.
 */
-body.touch .ch-root {
-  top: max(14px, env(safe-area-inset-top, 0px));
-  bottom: auto;
-  flex-direction: column-reverse;
-  justify-content: flex-start;
-  width: min(300px, 62vw);
-}
 body.touch .ch-stream { flex-direction: column-reverse; justify-content: flex-start; }
 
 body.touch .ch-bubble { animation-name: ch-drop; }
@@ -169,43 +116,40 @@ body.touch .ch-bubble.ch-pop { animation-name: ch-burst-down; }
 }
 `;
 
+export const CHAT_ICON = `
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"
+       stroke-linejoin="round" aria-hidden="true">
+    <path d="M3 5.5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H8l-4 3.5V13.5a2 2 0 0 1-1-1.8z"/>
+  </svg>`;
+
 export class Channel {
-  constructor({ net }, parent = document.body) {
+  /** @param hasCompany () => whether there is anybody here to talk to */
+  constructor({ net, hasCompany }) {
     const style = document.createElement('style');
     style.textContent = CSS;
     document.head.appendChild(style);
 
-    const root = document.createElement('div');
-    root.className = 'ch-root';
-    root.hidden = true;
-    root.dataset.state = 'idle';
-    root.innerHTML = `
-      <div class="ch-stream"></div>
-      <div class="ch-entry ch-pane">
-        <button class="ch-toggle" type="button" aria-label="Chat">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"
-               stroke-linejoin="round" aria-hidden="true">
-            <path d="M3 5.5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H8l-4 3.5V13.5a2 2 0 0 1-1-1.8z"/>
-          </svg>
-        </button>
-        <input class="ch-field" type="text" maxlength="${MAX_TEXT}"
-               placeholder="say something to the room"
-               autocomplete="off" autocapitalize="sentences" spellcheck="false">
-      </div>`;
-    parent.appendChild(root);
+    const stream = document.createElement('div');
+    stream.className = 'ch-stream';
+
+    const entry = document.createElement('div');
+    entry.className = 'ch-entry tb-pane';
+    entry.innerHTML = `
+      <span class="ch-prompt">›</span>
+      <input class="ch-field" type="text" maxlength="${MAX_TEXT}"
+             placeholder="say something to the room"
+             autocomplete="off" autocapitalize="sentences" spellcheck="false">`;
 
     this.net = net;
-    this.el = {
-      root,
-      stream: root.querySelector('.ch-stream'),
-      entry: root.querySelector('.ch-entry'),
-      field: root.querySelector('.ch-field'),
-      toggle: root.querySelector('.ch-toggle'),
-    };
-    this.visible = false;
-    this.open = false;
+    this.hasCompany = hasCompany;
+    this.el = { stream, entry, field: entry.querySelector('.ch-field') };
 
-    this.el.toggle.addEventListener('click', () => this.setOpen(!this.open));
+    // The tool, as toolbar.js wants one.
+    this.id = 'chat';
+    this.title = 'Chat';
+    this.icon = CHAT_ICON;
+    this.panel = entry;
+    this.ambient = stream;
 
     /*
       Keystrokes stop here. The game listens for keys on the window, so without
@@ -219,40 +163,42 @@ export class Channel {
         this.send();
         e.preventDefault();
       } else if (e.code === 'Escape') {
-        this.setOpen(false);
+        this.close();
         e.preventDefault();
       }
     });
   }
 
-  /**
-   * Open to write, shut to play. Shut it is the size of its own icon, which is
-   * all a chat needs to be while nobody is saying anything — the lines still
-   * rise above it either way, so closing it never costs you the conversation,
-   * only the keyboard.
-   */
-  setOpen(on) {
-    if (on === this.open) return;
-    this.open = on;
-    this.el.root.dataset.state = on ? 'open' : 'idle';
+  /*
+    Only worth being here when somebody else is. The toolbar takes the button
+    away otherwise — and the stream with it, since it is this tool's too.
+  */
+  available() {
+    return this.hasCompany() || this.typing() || this.el.field.value !== '';
+  }
 
-    this.el.entry.classList.remove('ch-boing');
-    void this.el.entry.offsetWidth;          // let the animation start again
-    this.el.entry.classList.add('ch-boing');
+  onOpen() {
+    this.el.field.focus();
+  }
 
-    if (on) this.el.field.focus();
-    else this.el.field.blur();
+  onClose() {
+    this.el.field.blur();
   }
 
   /** Whether the player is typing here, so the game can leave the keys alone. */
-  get typing() {
+  typing() {
     return document.activeElement === this.el.field;
+  }
+
+  /** Set by the toolbar so sending can put the panel away. */
+  close() {
+    this.onCloseRequest?.();
   }
 
   send() {
     const text = this.el.field.value.trim();
     this.el.field.value = '';
-    this.setOpen(false);
+    this.close();
     if (text) this.net.sayAll(text);
   }
 
@@ -273,7 +219,7 @@ export class Channel {
   add({ from, text, to = null, me = null }) {
     const mine = from === me;
     const bubble = document.createElement('div');
-    bubble.className = 'ch-bubble ch-pane';
+    bubble.className = 'ch-bubble tb-pane';
     if (to !== null) bubble.dataset.private = '';
 
     const head = document.createElement('div');
@@ -305,15 +251,4 @@ export class Channel {
     for (const old of live.slice(0, -STACK)) this.retire(old);
   }
 
-  /**
-   * Shown only when there is somebody to talk to — but never yanked away
-   * mid-sentence, because losing a half-written line to the last person leaving
-   * is a worse trade than a panel that lingers a moment.
-   */
-  show(on) {
-    const keep = on || this.open || this.el.field.value !== '';
-    if (keep === this.visible) return;
-    this.visible = keep;
-    this.el.root.hidden = !keep;
-  }
 }
