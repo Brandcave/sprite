@@ -137,9 +137,38 @@ const CSS = `
 .ch-root[data-state="idle"] .ch-field { opacity: 0; pointer-events: none; }
 .ch-field::placeholder { color: rgba(234, 242, 255, 0.45); }
 
-/* clear of the thumbs on a phone, and out from under its keyboard */
-body.touch .ch-root { bottom: 210px; width: min(300px, 62vw); }
-body.touch.tc-typing .ch-root { bottom: calc(var(--tc-kb, 0px) + 12px); }
+/*
+  A phone has thumbs at the bottom and a keyboard that covers half the screen,
+  so the panel lives at the top instead — where nothing else is, and where the
+  keyboard cannot reach it. Everything then runs the other way up: the field on
+  top, and lines arriving beneath it and pushing the older ones down.
+
+  Both directions keep the newest line against the field, which is the part that
+  matters. You look where you type.
+*/
+body.touch .ch-root {
+  top: max(14px, env(safe-area-inset-top, 0px));
+  bottom: auto;
+  flex-direction: column-reverse;
+  justify-content: flex-start;
+  width: min(300px, 62vw);
+}
+body.touch .ch-stream { flex-direction: column-reverse; justify-content: flex-start; }
+
+body.touch .ch-bubble { animation-name: ch-drop; }
+@keyframes ch-drop {
+  from { opacity: 0; transform: translateY(-14px) scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Specificity matters here: without the extra class this rule loses to the one
+   above and a bursting line quietly plays the arriving animation instead. */
+body.touch .ch-bubble.ch-pop { animation-name: ch-burst-down; }
+@keyframes ch-burst-down {
+  0% { transform: translateY(0) scale(1); opacity: 1; filter: none; }
+  22% { transform: translateY(0) scale(0.92); opacity: 1; }
+  100% { transform: translateY(18px) scale(1.4); opacity: 0; filter: blur(2px); }
+}
 `;
 
 export class Channel {
