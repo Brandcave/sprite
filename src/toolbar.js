@@ -135,8 +135,6 @@ export class Toolbar {
 
     for (const tool of tools) {
       if (tool.ambient) ambient.append(tool.ambient);
-      // A tool that finishes on its own — a message sent — puts itself away.
-      tool.onCloseRequest = () => this.select(null);
 
       const btn = document.createElement('button');
       btn.className = 'tb-btn';
