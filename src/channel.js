@@ -12,8 +12,8 @@ import { nameOf } from './identity.js';
   its owner was sent.
 
   Nothing is kept. Each line rises from the field, holds long enough to be read,
-  and goes — so the panel is only ever as large as the conversation happening
-  right now, and returns to a single line to type into when it stops. A log that
+  then lifts and bursts — so the panel is only ever as large as the conversation
+  happening right now, and shrinks back to its icon when it stops. A log that
   accumulates would end the evening as a wall of text down one side of an island
   nobody can see any more.
 
@@ -22,8 +22,7 @@ import { nameOf } from './identity.js';
 */
 
 const LIFE = 14000;           // how long a line stays up
-const FADE = 600;             // and how long it takes to go
-const POP = 380;              // and how long it takes to burst
+const POP = 460;              // and how long it takes to burst when it goes
 const STACK = 4;              // most lines on screen at once
 const BOUNCE = 420;           // opening and closing the field
 const MAX_TEXT = 120;         // the relay's cap, so the field cannot overrun it
@@ -57,28 +56,26 @@ const CSS = `
   padding: 8px 11px 9px;
   transform-origin: 20% 100%;
   animation: ch-rise 260ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
-  transition: opacity ${FADE}ms ease, transform ${FADE}ms ease;
 }
 @keyframes ch-rise {
   from { opacity: 0; transform: translateY(14px) scale(0.94); }
   to { opacity: 1; transform: none; }
 }
 
-/* Two ways to leave, because they mean different things. Age drifts off the
-   top, having been read. Being crowded out bursts on the spot — the line is
-   not finished with, it has been shoved, and it should look shoved. */
-.ch-bubble.ch-gone { opacity: 0; transform: translateY(-10px); }
-
-/* The dip before the burst is what sells it: a bubble tightens for an instant
-   before it goes, and without that beat this only reads as a fade. */
+/*
+  One way out, whether it was read and ran out of time or was shoved off by a
+  newer line: it lifts, swells and goes. The dip at the start is what sells it —
+  a bubble tightens for an instant before it bursts, and without that beat the
+  whole thing only reads as a fade.
+*/
 .ch-bubble.ch-pop {
   transform-origin: center;
   animation: ch-burst ${POP}ms cubic-bezier(0.3, 0, 0.2, 1) both;
 }
 @keyframes ch-burst {
-  0% { transform: scale(1); opacity: 1; filter: none; }
-  22% { transform: scale(0.92); opacity: 1; }
-  100% { transform: scale(1.4); opacity: 0; filter: blur(2px); }
+  0% { transform: translateY(0) scale(1); opacity: 1; filter: none; }
+  22% { transform: translateY(0) scale(0.92); opacity: 1; }
+  100% { transform: translateY(-18px) scale(1.4); opacity: 0; filter: blur(2px); }
 }
 
 .ch-head { font-size: 0.82em; letter-spacing: 0.06em; margin-bottom: 2px; }
@@ -232,12 +229,12 @@ export class Channel {
     if (text) this.net.sayAll(text);
   }
 
-  /** See it off, either by drifting away or by bursting. */
-  retire(bubble, how = 'gone') {
+  /** See it off. */
+  retire(bubble) {
     if (bubble.dataset.going !== undefined) return;
     bubble.dataset.going = '';
-    bubble.classList.add(`ch-${how}`);
-    setTimeout(() => bubble.remove(), how === 'pop' ? POP : FADE);
+    bubble.classList.add('ch-pop');
+    setTimeout(() => bubble.remove(), POP);
   }
 
   /**
@@ -276,10 +273,9 @@ export class Channel {
     this.el.stream.append(bubble);
     setTimeout(() => this.retire(bubble), LIFE);
 
-    // Four at a time. Anything older bursts rather than drifting, because it is
-    // being shoved off rather than running out.
+    // Four at a time; anything older goes early.
     const live = [...this.el.stream.children].filter((b) => b.dataset.going === undefined);
-    for (const old of live.slice(0, -STACK)) this.retire(old, 'pop');
+    for (const old of live.slice(0, -STACK)) this.retire(old);
   }
 
   /**
