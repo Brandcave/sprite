@@ -238,6 +238,52 @@ export const BRAM = {
 };
 
 /*
+  The opening, played once on load before the player has the island.
+
+  Nobody speaks it, so it carries no name plate — the whole script is
+  `name: null`, which the box reads as the game telling you something rather
+  than a person telling you something. Same treatment as the kiss and the
+  fireworks at the other end of the story, and for the same reason.
+
+  It is doing one job beyond the mood, and the last two lines are it: a player
+  dropped on an island with two houses and a fountain has no reason to walk
+  into anybody's front door. After this they have one.
+
+  Deliberately short. It is the only thing standing between opening the page and
+  playing, it plays again on every reload while there is no saved progress, and
+  six lines is about as long as anybody forgives twice.
+*/
+export const OPENING = {
+  name: null,
+  start: 'sea',
+  nodes: {
+    sea: {
+      text: 'A year at sea now, and you had stopped counting the islands somewhere around the ninth.',
+      next: 'boat',
+    },
+    boat: {
+      text: 'Then this morning a boat crossed yours, close enough to hear its ropes — and there was a girl at the rail of it.',
+      next: 'glimpse',
+    },
+    glimpse: {
+      text: 'You caught her out of the corner of your eye. A moment of her, and the swell carried her past.',
+      next: 'since',
+    },
+    since: {
+      text: 'You have thought about very little else since.',
+      next: 'ashore',
+    },
+    ashore: {
+      text: 'Your hull touched sand an hour ago. Tidewatch: two houses, a fountain, and a road running north to the shore.',
+      next: 'find',
+    },
+    find: {
+      text: 'Her boat put in here as well. She is somewhere on this island, out of the weather. Go and find her.',
+    },
+  },
+};
+
+/*
   Amy — three conversations that happen in order, in three places, and are the
   only thing in this file that remembers it has already happened. See story.js
   for where she is standing for each one.

@@ -9,7 +9,7 @@ import { Dialogue, message, partOfDay } from './dialogue.js';
 import { Chat } from './chat.js';
 import { Channel } from './channel.js';
 import { Toolbar } from './toolbar.js';
-import { ANOKA, TULA, BRAM, SIGNS, WORN_SIGN } from './dialogue-scripts.js';
+import { ANOKA, TULA, BRAM, SIGNS, WORN_SIGN, OPENING } from './dialogue-scripts.js';
 import { VILLAGERS } from './art.js';
 import { Weather, DAY_LENGTH, DAY_PHASE, dayAt } from './weather.js';
 import { sim } from './sim.js';
@@ -627,6 +627,21 @@ applyTimeOfDay(dayT);
 camTarget.copy(player.position);
 frame();
 
+/*
+  Why you are here, before you are here.
+
+  Opened after the first frame rather than before it, so the box comes up over
+  an island that is already drawn and lit — a wall of text on a blank canvas
+  reads as a loading screen, and this is meant to read as the moment you step
+  off the boat.
+
+  It needs no input lock of its own. An open box already swallows movement and
+  the talk key, and Escape already closes one — so somebody who has read it
+  twice can skip it with the key that means "leave this alone" everywhere else
+  in the game.
+*/
+dialogue.start(OPENING);
+
 // convenience for poking at the scene from devtools; setDay(0.75) jumps to night
 Object.assign(window, {
   THREE, scene, camera, renderer, player, npcs, dialogue, MAP_W, MAP_H,
@@ -636,6 +651,7 @@ Object.assign(window, {
     applyTimeOfDay(dayT);
   },
   setWeather: (type) => weather.force(type),
+  opening: () => dialogue.start(OPENING),
   reflection, puddles, sim, net, remotes, chat, channel, toolbar, touch, minimap,
   here, ISLAND, HOUSES, doorway,
   weather, story, fireworks,
