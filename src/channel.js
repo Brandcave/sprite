@@ -85,15 +85,13 @@ const CSS = `
 
 /*
   A word said to one person should not look like a word said to the room, and
-  with the label gone this is the only thing left saying so — hence a tinted
-  pane and a rule down the edge rather than a shade of blue on the name alone.
+  with the label gone the styling is the only thing left saying so — a cooler
+  pane and a brighter edge all the way round, which the eye reads as a
+  different kind of thing without any one part of it announcing itself.
 */
 .ch-bubble[data-private] {
   background: rgba(30, 52, 96, 0.42);
   border-color: rgba(159, 208, 255, 0.45);
-  box-shadow: inset 3px 0 0 rgba(159, 208, 255, 0.75),
-              inset 0 1px 0 rgba(255, 255, 255, 0.26),
-              0 8px 20px rgba(4, 8, 18, 0.35);
 }
 .ch-bubble[data-private] .ch-who { color: #9fd0ff; }
 
