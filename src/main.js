@@ -3,7 +3,7 @@ import { buildWorld, tileAt, MAP_W, MAP_H } from './world.js';
 import { Player } from './player.js';
 import { Npc } from './npc.js';
 import { DIRS, characterAt } from './character.js';
-import { Dialogue, message } from './dialogue.js';
+import { Dialogue, message, partOfDay } from './dialogue.js';
 import { Chat } from './chat.js';
 import { nameOf } from './identity.js';
 import { ANOKA, TULA, SIGNS, WORN_SIGN } from './dialogue-scripts.js';
@@ -184,6 +184,14 @@ const dialogue = new Dialogue(document.body, TOUCH
   ? { confirm: 'A', send: 'A', cancel: 'B' }
   : {});
 const chat = new Chat({ net, dialogue });
+
+// Villagers talk about the weather and the hour, so the box has to know both.
+// Read at the moment a line opens rather than held, so a storm that arrives
+// mid-conversation is in the next thing they say.
+dialogue.context = () => ({
+  weather: weather.kind,
+  time: partOfDay((readDay() * 24 + 6) % 24),
+});
 
 /* ----------------------------------------------------------------- players */
 // Everyone else in the room. They are told to us one step at a time and nothing

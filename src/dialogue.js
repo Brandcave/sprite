@@ -112,6 +112,45 @@ const CSS = `
 .dlg-hint b { color: #ffd47a; }
 `;
 
+/*
+  The day in quarters. Six hours each, and the names are the ones a villager
+  would use rather than the ones a clock would — which is the whole point of
+  having them, since these exist only to be spoken about.
+*/
+const QUARTERS = [
+  { until: 6, name: 'night' },
+  { until: 12, name: 'morning' },
+  { until: 18, name: 'noon' },
+  { until: 24, name: 'evening' },
+];
+
+export const partOfDay = (hours) => QUARTERS.find((q) => hours < q.until).name;
+
+/*
+  A line can be one string, or a table of them indexed by what the sky is doing
+  and what time it is:
+
+    text: {
+      any:   'said whenever nothing below applies',
+      rain:  'said in any rain',
+      storm: { night: '...', any: '...' },
+    }
+
+  Both levels fall back to `any`, so a line that only cares about storms says so
+  and stays two lines long, and only the lines worth varying carry a table.
+
+  Both keys come from the shared clock, so this is a pure function of the room:
+  two people talking to the same villager at the same moment are told the same
+  thing, without a word of it crossing the wire.
+*/
+function pick(text, { weather = 'clear', time = 'morning' } = {}) {
+  if (typeof text !== 'object' || text === null) return text ?? '';
+  const forSky = text[weather] ?? text.any;
+  if (forSky === undefined) return '';
+  if (typeof forSky === 'string') return forSky;
+  return forSky[time] ?? forSky.any ?? (typeof text.any === 'string' ? text.any : '');
+}
+
 /** Greedy word wrap, then group the lines into pages of two. */
 function paginate(text) {
   const lines = [];
@@ -198,6 +237,9 @@ export class Dialogue {
     };
 
     this.script = null;
+    // What the sky and the clock are doing, for the tables above. Supplied by
+    // the game; without it every line falls back to its plain form.
+    this.context = () => ({});
     this.composing = false;
     this.onSend = null;
     this.onCancel = null;
@@ -285,7 +327,7 @@ export class Dialogue {
     const node = id ? this.script.nodes[id] : null;
     if (!node) return this.close();
     this.node = node;
-    this.pages = paginate(node.text ?? '');
+    this.pages = paginate(pick(node.text ?? '', this.context()));
     this.page = 0;
     this.hideChoices();
     this.openPage();

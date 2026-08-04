@@ -594,9 +594,14 @@ export class Weather {
     return `${type} — local only; setWeather('clear') to rejoin the schedule`;
   }
 
+  /** What the sky is doing, plainly — 'clear', 'wind', 'rain' or 'storm'. */
+  get kind() {
+    return this.override ?? this.spellAt(sim.time)?.type ?? 'clear';
+  }
+
   get label() {
     if (this.override) return `${this.override} (forced)`;
-    return this.spellAt(sim.time)?.type ?? 'clear';
+    return this.kind;
   }
 
   /** What the next spells are, for debugging the schedule. */
