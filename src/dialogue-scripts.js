@@ -260,7 +260,7 @@ export const BRAM = {
     to mention the wind. But she does arrive into whatever the day is doing, and
     the first line is where that shows.
 
-  The three endings of AMY_BEACH are named for the places she goes on to be at.
+  The three endings of AMY_FOUNTAIN are named for the places she goes on to be at.
   That is not a coincidence to be tidied up later — story.js reads the ending id
   straight back as a place, which is what keeps the choice and its consequence
   from being written down twice and drifting apart.
@@ -322,16 +322,16 @@ export const AMY_HOUSE = {
       next: 'off',
     },
     off: {
-      text: 'Anyhow. I am off — I have been under a roof long enough, and the sea does not wait about for a conversation.',
+      text: 'Anyhow. I am off — I have been under a roof long enough, and the day does not wait about for a conversation.',
       next: 'bye',
     },
     bye: {
-      text: 'The north shore, if you are still standing there once I have gone. Where the sand runs wide.',
+      text: 'The fountain, if you are still standing there once I have gone. Everyone ends up at the fountain.',
     },
   },
 };
 
-export const AMY_BEACH = {
+export const AMY_FOUNTAIN = {
   name: 'Amy',
   start: 'intro',
   nodes: {
@@ -339,9 +339,9 @@ export const AMY_BEACH = {
       text: {
         clear: {
           morning: 'You came. Early, as well. I had you down for the sort who turns up at noon.',
-          noon: 'You came. In this heat, too. Sit down before you fall down.',
-          evening: 'You came. Good — this is the hour worth walking all the way down here for.',
-          night: 'You came. In the dark, the whole way down here. That is either very sweet or very stupid.',
+          noon: 'You came. In this heat, too. Sit on the curb before you fall down.',
+          evening: 'You came. Good — this is the hour worth being out in. Whole plaza goes gold in a minute.',
+          night: 'You came. This late, and out to the fountain of all places. That is either very sweet or very stupid.',
         },
         any: 'You came. In this, of all things. That is either very sweet or very stupid and I have not settled which.',
       },
@@ -375,7 +375,7 @@ export const AMY_BEACH = {
       choices: [
         { label: 'Dinner, indoors', next: 'dinner' },
         { label: 'Picnic at the lagoon', next: 'picnic' },
-        { label: 'Stars, on this beach', next: 'stars' },
+        { label: 'Stars, on the beach', next: 'stars' },
       ],
     },
     dinner: {
@@ -514,7 +514,7 @@ export const AMY_DATE = {
       next: 'happy',
     },
     happy: {
-      text: 'I do not need a man to hand me a perfect life. I am happy. I was happy before you came up this beach.',
+      text: 'I do not need a man to hand me a perfect life. I am happy. I was happy long before you turned up.',
       next: 'partner',
     },
     partner: {

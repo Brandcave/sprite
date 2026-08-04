@@ -4,7 +4,7 @@ import { DIRS, tileOccupied } from './character.js';
 import { inBounds, isBlocked } from './place.js';
 import { sim } from './sim.js';
 import { dayAt, DAY_LENGTH } from './weather.js';
-import { AMY_HOUSE, AMY_BEACH, amyDate } from './dialogue-scripts.js';
+import { AMY_HOUSE, AMY_FOUNTAIN, amyDate } from './dialogue-scripts.js';
 
 /*
   Amy, and the only thing on this island that happens in an order.
@@ -36,8 +36,12 @@ import { AMY_HOUSE, AMY_BEACH, amyDate } from './dialogue-scripts.js';
     cue below. Where she is standing is a private matter; what hour it is on the
     island is not.
 
-  - It survives a reload, in localStorage. A story you have to walk through again
-    every time you refresh the page is not a story, it is a demo.
+  - It does not survive a reload, and for now that is on purpose. Refreshing the
+    page puts her back in the house and starts the whole thing over. While the
+    story is still being written that is the behaviour you want — every reload is
+    a clean run of it — and it means nothing can get stranded in a state you
+    cannot see or clear. A saved stage is a one-line change here when the story
+    is finished enough to be worth keeping.
 
   Where she is standing for each beat is the whole of the state. Talk your way to
   the end of a conversation and she leaves — on her feet, out of the door or off
@@ -45,12 +49,10 @@ import { AMY_HOUSE, AMY_BEACH, amyDate } from './dialogue-scripts.js';
   only way the world here has of saying that something happened.
 */
 
-const SAVE = 'tidewatch.amy';
-
 /*
   She never roams, so the tile she is put on is the tile she is on — which is
   why these can be written down as flat coordinates and trusted. The three date
-  spots are keyed by the ending node of AMY_BEACH, so the choice in the script
+  spots are keyed by the ending node of AMY_FOUNTAIN, so the choice in the script
   *is* the destination and there is no table mapping one to the other to keep in
   step. Adding a fourth place to go is adding a node and a line here.
 
@@ -68,14 +70,21 @@ function spotsFor({ parlour, dining }) {
       exit: { ...parlour.mat, door: true },
     },
     /*
-      Out on the north sand, east of where the road arrives — far enough along
-      that finding her is a short walk rather than a search. Not the south beach:
-      that is Bram's, and a woman who has just walked out on you to be alone with
-      the sea does not go and stand next to the drifter.
+      The south edge of the fountain, in the middle of the plaza — the one place
+      on this island everybody passes through, and squarely on the road out of
+      the houses, so the second meeting is somewhere you walk to rather than
+      somewhere you hunt for.
+
+      Facing down the road, with the water behind her: the camera looks from the
+      south, so the fountain fills the frame above her shoulder rather than
+      sitting in front of her where it would be something to look past.
     */
-    beach: {
-      x: 37, z: 8, facing: 2, script: AMY_BEACH,
-      exit: { x: 30, z: 8 },                      // away west along the shore
+    fountain: {
+      x: 30, z: 27, facing: 2, script: AMY_FOUNTAIN,
+      // Around the west side of the fountain and away up the plaza. The curb is
+      // solid, so there is no straight line out of here — the route finds its
+      // own way round, which is the whole reason it is a search and not a list.
+      exit: { x: 26, z: 21 },
     },
     // At the long table, in the room that has one.
     dinner: {
@@ -174,13 +183,6 @@ function routeTo(who, to) {
   return route;
 }
 
-const read = () => {
-  try { return localStorage.getItem(SAVE); } catch { return null; }
-};
-const write = (stage) => {
-  try { localStorage.setItem(SAVE, stage); } catch { /* private window: play it once */ }
-};
-
 export class Story {
   /**
    * @param rooms the two interiors, so the indoor beats can be written as room
@@ -189,10 +191,9 @@ export class Story {
   constructor(scene, rooms) {
     this.spots = spotsFor(rooms);
 
-    const saved = read();
-    this.stage = saved && (saved === 'gone' || this.spots[saved]) ? saved : 'house';
-
-    const start = this.spots[this.stage] ?? this.spots.house;
+    // Always from the top. Nothing is remembered between page loads.
+    this.stage = 'house';
+    const start = this.spots.house;
     /*
       An index of 3, after the three villagers. It seeds a schedule of decisions
       she never acts on — with a roam of 0 every destination she is ever given is
@@ -222,8 +223,6 @@ export class Story {
     this.onFireworks = null;
     /** ...and by whoever can tell the rest of the world what hour it is. */
     this.onNightfall = null;
-
-    if (this.stage === 'gone') this.vanish();
   }
 
   /** Nothing the player does reaches the world while a scene is running. */
@@ -241,8 +240,8 @@ export class Story {
   done(why, ending) {
     if (why !== 'end') return;
     if (this.stage === 'house') {
-      this.leave(() => this.moveTo('beach'));
-    } else if (this.stage === 'beach') {
+      this.leave(() => this.moveTo('fountain'));
+    } else if (this.stage === 'fountain') {
       const next = this.spots[ending] ? ending : 'stars';
       this.leave(() => this.moveTo(next));
     } else {
@@ -300,7 +299,6 @@ export class Story {
   moveTo(stage) {
     const spot = this.spots[stage];
     this.stage = stage;
-    write(stage);
     // homeX/homeZ as well as the tile: home is what her schedule walks her back
     // towards, and leaving it behind in the last room would have her spend the
     // rest of the game trying to get there.
@@ -314,7 +312,6 @@ export class Story {
 
   finish() {
     this.stage = 'gone';
-    write('gone');
     this.vanish();
   }
 
