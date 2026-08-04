@@ -22,8 +22,15 @@ export class Chat {
     this.net = net;
     this.dialogue = dialogue;
     this.waiting = [];
+  }
 
-    net.onSay = (from, text) => this.waiting.push({ from, text });
+  /**
+   * Somebody spoke to us directly. Queued rather than shown, because the box
+   * may be busy — see drain(). Public talk never comes through here: it belongs
+   * in the panel and has no business interrupting anybody.
+   */
+  receive(from, text) {
+    this.waiting.push({ from, text });
   }
 
   /** Walk up to somebody and open the box to write them a line. */

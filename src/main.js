@@ -5,6 +5,7 @@ import { Npc } from './npc.js';
 import { DIRS, characterAt } from './character.js';
 import { Dialogue, message, partOfDay } from './dialogue.js';
 import { Chat } from './chat.js';
+import { Channel } from './channel.js';
 import { nameOf } from './identity.js';
 import { ANOKA, TULA, SIGNS, WORN_SIGN } from './dialogue-scripts.js';
 import { VILLAGERS } from './art.js';
@@ -184,6 +185,21 @@ const dialogue = new Dialogue(document.body, TOUCH
   ? { confirm: 'A', send: 'A', cancel: 'B' }
   : {});
 const chat = new Chat({ net, dialogue });
+const channel = new Channel({ net });
+
+/*
+  One line, two homes. Everything said in the room is logged in the panel;
+  something said face to face is *also* handed to the box, so it arrives the way
+  a villager's line does, typed out under a name plate. Public talk is never
+  given to the box — a room chatting should not stop you walking.
+
+  Our own words come back from the relay rather than being echoed locally, so
+  the `from === net.id` test is what keeps us from being told what we just said.
+*/
+net.onSay = (from, text, to) => {
+  channel.add({ from, text, to, me: net.id });
+  if (to !== null && from !== net.id) chat.receive(from, text);
+};
 
 // Villagers talk about the weather and the hour, so the box has to know both.
 // Read at the moment a line opens rather than held, so a storm that arrives
@@ -313,6 +329,9 @@ const TALK_KEYS = new Set(['KeyZ', 'KeyE', 'Enter', 'Space']);
  *          browser's. Only a real key event has anything to preventDefault.
  */
 function keyDown(code) {
+  // Typing in the panel is not playing. Its field stops keys reaching here at
+  // all, so this only catches the gap between clicking it and the first press.
+  if (channel.typing) return false;
   // A conversation swallows input: arrow keys drive the choice cursor, not the
   // hero, and nothing walks off mid-sentence.
   if (dialogue.active) {
@@ -421,6 +440,8 @@ function frame() {
   // Anything said to us while the box was busy has been queued rather than
   // thrown on screen over the top of whatever was there; this is where it lands.
   chat.drain();
+  // Nobody to talk to, no reason for somewhere to talk.
+  channel.show(net.online && remotes.size > 0);
   dialogue.showHint(!dialogue.active && facing()?.verb);
   touch?.showBack(dialogue.active);
   updateCamera(dt);
@@ -457,6 +478,6 @@ Object.assign(window, {
     applyTimeOfDay(dayT);
   },
   setWeather: (type) => weather.force(type),
-  reflection, puddles, sim, net, remotes, chat, touch,
+  reflection, puddles, sim, net, remotes, chat, channel, touch,
   weather,
 });

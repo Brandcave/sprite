@@ -110,15 +110,9 @@ wss.on('connection', (ws, req) => {
     }
 
     if (msg.t === 'say') {
-      // Addressed to one person, and only to somebody in the same room —
-      // room.get is the whole of that check, since a room is the only place
-      // this server keeps anybody.
-      const to = room.get(msg.to | 0);
-      if (!to || to.id === me.id) return;
-
-      // Collapse whitespace and drop control characters: the client paginates
-      // this into a fixed two-line box, and a stray newline or a run of tabs
-      // makes a mess of somebody else's screen, not the sender's.
+      // Collapse whitespace and drop control characters: this lands in a fixed
+      // two-line box on somebody else's screen, and a stray newline or a run of
+      // tabs makes a mess of theirs rather than the sender's.
       const text = String(msg.text ?? '')
         .replace(/[\u0000-\u001f\u007f]+/g, ' ')
         .replace(/\s+/g, ' ')
@@ -133,7 +127,26 @@ wss.on('connection', (ws, req) => {
       }
       if (++me.says > SAY_RATE) return;
 
-      send(to.ws, { t: 'said', from: me.id, text });
+      /*
+        An addressee or nobody, and that is the whole difference between the two
+        kinds of talk this carries. Addressed, it reaches exactly two people —
+        which is what makes a private conversation private, here rather than in
+        any client, since a client can only ever show what it was sent. Speaking
+        to the room reaches the room.
+
+        Either way the sender is sent their own words back, rather than echoing
+        them locally, so that everybody's list is in the order the relay saw and
+        not the order their own machine guessed at.
+      */
+      if (msg.to !== undefined && msg.to !== null) {
+        const to = room.get(msg.to | 0);
+        if (!to || to.id === me.id) return;
+        const line = { t: 'said', from: me.id, to: to.id, text };
+        send(to.ws, line);
+        send(ws, line);
+      } else {
+        broadcast(room, { t: 'said', from: me.id, text });
+      }
       return;
     }
 

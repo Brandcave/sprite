@@ -143,7 +143,8 @@ export class Net {
         this.onMove(msg, true);
         break;
       case 'said':
-        this.onSay(msg.from | 0, String(msg.text ?? ''));
+        // `to` present means it was addressed; absent means the room heard it.
+        this.onSay(msg.from | 0, String(msg.text ?? ''), msg.to ?? null);
         break;
       case 'bye':
         this.onLeave(msg.id);
@@ -187,10 +188,16 @@ export class Net {
   /**
    * Say something to one person. Addressed rather than broadcast: the relay
    * hands it to that player and nobody else, so standing next to two people
-   * does not mean talking to both.
+   * does not mean talking to both. It comes back to us too, so our own list
+   * holds what we said.
    */
   say(to, text) {
     this.send({ t: 'say', to, text });
+  }
+
+  /** Say something to the whole room. */
+  sayAll(text) {
+    this.send({ t: 'say', text });
   }
 
   /**
