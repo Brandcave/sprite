@@ -157,17 +157,22 @@ export class Npc extends Character {
     }
   }
 
-  update(dt, cameraYawIndex, player) {
+  /** @param player whoever might be worth looking at, or null if nobody is */
+  update(dt, cameraYawIndex, player = null) {
     if (!this.talking) this.advanceTo(sim.tick);
 
     // Noticing is cosmetic — it turns the head and nothing else, so it can
-    // safely depend on where a player happens to be.
-    if (this.talking) {
-      this.lookAt(player, cameraYawIndex);
-    } else if (!this.moving) {
-      const near = Math.abs(player.tileX - this.tileX)
-        + Math.abs(player.tileZ - this.tileZ) <= NOTICE;
-      if (near) this.lookAt(player, cameraYawIndex);
+    // safely depend on where a player happens to be. And there may be nobody:
+    // villagers keep walking their schedule while you are indoors, with nobody
+    // out there to notice.
+    if (player) {
+      if (this.talking) {
+        this.lookAt(player, cameraYawIndex);
+      } else if (!this.moving) {
+        const near = Math.abs(player.tileX - this.tileX)
+          + Math.abs(player.tileZ - this.tileZ) <= NOTICE;
+        if (near) this.lookAt(player, cameraYawIndex);
+      }
     }
 
     this.tick(dt);

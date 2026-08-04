@@ -146,6 +146,10 @@ export class Toolbar {
       btn.setAttribute('aria-pressed', 'false');
       btn.innerHTML = tool.icon;
       btn.addEventListener('click', () => this.select(this.active === tool ? null : tool));
+
+      // A tool that finishes its own job puts itself away — sending a message,
+      // say. It should not have to know what a toolbar is to do that.
+      tool.onCloseRequest = () => { if (this.active === tool) this.select(null); };
       bar.append(btn);
       this.buttons.set(tool, btn);
     }

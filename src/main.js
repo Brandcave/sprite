@@ -538,7 +538,7 @@ function frame() {
   hud.textContent = `${String(Math.floor(hours)).padStart(2, '0')}:${String(Math.floor((hours % 1) * 60)).padStart(2, '0')}`;
   // The puddles cannot be in their own reflection, and neither the rain nor the
   // swooshes belong in it — they are in front of the water, not above it.
-  if (puddles.mesh && weather.wet > 0.02) {
+  if (!indoors && puddles.mesh && weather.wet > 0.02) {
     reflection.update(renderer, scene, camera, [
       puddles.mesh, weather.rainField.mesh, weather.gusts.mesh,
     ]);
