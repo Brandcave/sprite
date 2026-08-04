@@ -89,12 +89,41 @@ const room = params && (param('epoch') === null || param('seed') === null)
 
 const ANCHOR = Date.now() - performance.now();   // wall time at performance.now() === 0
 
+/*
+  Making the world's clock run fast, for everybody at once.
+
+  This is the one thing that is allowed to move the shared timeline, and it is
+  shaped the way everything else here is shaped: not as a command that has to
+  arrive while it matters, but as a description of a thing that happened, from
+  which every machine works out the same clock forever after.
+
+  A rush is four numbers — when it started, how much skew was already in effect,
+  how many seconds of world time to add, and how long to take adding them. Given
+  those, the skew at any moment is a pure function of the raw clock, so a client
+  that hears about it late (or joins an hour afterwards, and is simply handed the
+  same four numbers by the relay) lands on exactly the same hour as everyone
+  else. Nothing is integrated, nothing has to be replayed, and there is no
+  "speeding up" state to keep in step — there is a curve, and every machine reads
+  its own position on it.
+
+  `from` is what makes two of these compose: a second rush picks up where the
+  first one left off rather than throwing it away.
+
+  The ramp is a smoothstep, so the sun eases up to speed and eases back down
+  rather than lurching. It never decreases, which matters more than it looks:
+  ticks only ever move forward, and a clock that went backwards would leave the
+  villagers and the weather waiting for real time to catch up.
+*/
+const smooth = (k) => k * k * (3 - 2 * k);
+
 export const sim = {
   epoch: room.epoch,
   seed: room.seed >>> 0,
   offset: 0,        // server clock correction; see configure()
+  rush: null,       // { at, from, by, over } — see above
   tick: 0,
-  time: 0,          // seconds since the epoch
+  raw: 0,           // seconds since the epoch
+  time: 0,          // ...and the same, with any rush added on
 
   /**
    * The server will call this on join; until then a session is its own room.
@@ -110,14 +139,43 @@ export const sim = {
     this.read();
   },
 
+  /**
+   * How far ahead of the raw clock the world is, at a given raw time.
+   * `raw` rather than `this.time`, because the skew is what turns one into the
+   * other and a skew defined in terms of its own output would not be a function.
+   */
+  skewAt(raw) {
+    const r = this.rush;
+    if (!r) return 0;
+    const k = Math.min(1, Math.max(0, (raw - r.at) / r.over));
+    return r.from + r.by * smooth(k);
+  },
+
+  /**
+   * Start running fast. Absolute rather than relative, so applying the same
+   * descriptor twice — which is exactly what happens when we send one to the
+   * relay and are handed our own back — changes nothing.
+   */
+  hurry({ at, from = this.skewAt(at), by, over }) {
+    this.rush = { at, from, by, over };
+    this.read();
+  },
+
+  /** What a rush would look like if started now: for whoever is starting one. */
+  rushNow(by, over) {
+    this.read();
+    return { at: this.raw, from: this.skewAt(this.raw), by, over };
+  },
+
   read() {
     // Anchored to a monotonic source rather than read fresh from Date.now():
     // the wall clock can jump — NTP correcting mid-session, or someone setting
     // it — and a backwards jump would stall the simulation until real time
     // caught back up, because ticks only ever move forward.
     const ms = ANCHOR + performance.now() + this.offset - this.epoch;
-    this.time = ms / 1000;
-    this.tick = Math.floor(ms / TICK_MS);
+    this.raw = ms / 1000;
+    this.time = this.raw + this.skewAt(this.raw);
+    this.tick = Math.floor(this.time * TICK_HZ);
     return this.tick;
   },
 };

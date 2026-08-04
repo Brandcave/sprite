@@ -48,6 +48,7 @@ export class Net {
     this.ws = null;
     this.id = null;
     this.roster = [];
+    this.rush = null;             // the room's clock, if it has been run on
     this.online = false;
     this.rtt = 0;
     this.samples = [];
@@ -56,6 +57,7 @@ export class Net {
     this.onLeave = () => {};
     this.onDrop = () => {};
     this.onSay = () => {};
+    this.onRush = () => {};
   }
 
   /**
@@ -129,6 +131,20 @@ export class Net {
         // and a player who is standing still sends nothing else to give
         // themselves away: they stay invisible until they happen to walk.
         this.roster = msg.players ?? [];
+        /*
+          Whatever the room has already done to its clock. This is why a rush is
+          a description rather than an event: somebody who arrives an hour after
+          the sun raced down is handed the same four numbers and lands on the
+          same hour, having watched none of it.
+
+          Kept rather than announced, like the roster above and for the same
+          reason — this lands inside connect(), before the caller has had a
+          chance to say what to do with it. It matters more here than it does
+          for the roster: the weather and the villagers are built from the clock
+          the moment connect() returns, so this has to be applied before that
+          rather than announced after it.
+        */
+        this.rush = msg.rush ?? null;
         break;
       case 'pong':
         this.sample(msg.c, msg.s, Date.now());
@@ -145,6 +161,10 @@ export class Net {
       case 'said':
         // `to` present means it was addressed; absent means the room heard it.
         this.onSay(msg.from | 0, String(msg.text ?? ''), msg.to ?? null);
+        break;
+      case 'rush':
+        this.rush = msg.rush ?? null;
+        if (this.rush) this.onRush(this.rush);
         break;
       case 'bye':
         this.onLeave(msg.id);
@@ -204,6 +224,18 @@ export class Net {
   /** Say something to the whole room. */
   sayAll(text) {
     this.send({ t: 'say', text });
+  }
+
+  /**
+   * Push the world's clock forward for everybody in the room — see sim.hurry().
+   *
+   * The only message here that changes something other than where a person is
+   * standing, and the only one that reaches people in other rooms of the world:
+   * you can be indoors while somebody out on the sand runs the sun down, and the
+   * light through your window ought to know about it.
+   */
+  hurry(rush) {
+    this.send({ t: 'rush', rush });
   }
 
   /**

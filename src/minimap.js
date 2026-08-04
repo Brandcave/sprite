@@ -250,8 +250,15 @@ export class Minimap {
     //
     // Villagers first and smallest. They are part of the scenery here — worth
     // knowing about, never the thing being looked for.
+    //
+    // Anybody who is not in the world is not on the map either — which is how
+    // somebody who has left the island stops being a dot without the map having
+    // to be told anything about why.
     for (const npc of npcs) {
-      if (this.lit(npc.tileX, npc.tileZ)) this.dot(npc.tileX, npc.tileZ, NPC_DOT, PALETTE.x);
+      if (!npc.group.visible) continue;
+      if (this.lit(npc.tileX, npc.tileZ)) {
+        this.dot(npc.tileX, npc.tileZ, NPC_DOT, npc.dot ?? PALETTE.x);
+      }
     }
 
     for (const who of remotes.values()) {

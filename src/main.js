@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { buildWorld, tileAt, ISLAND, MAP_W, MAP_H } from './world.js';
-import { goTo, here } from './place.js';
+import { goTo, here, inBounds } from './place.js';
 import { buildInterior } from './interior.js';
 import { Player } from './player.js';
 import { Npc } from './npc.js';
@@ -18,6 +18,8 @@ import { RemotePlayer } from './remote.js';
 import { PlanarReflection } from './reflection.js';
 import { TOUCH, TouchControls } from './touch.js';
 import { Minimap } from './minimap.js';
+import { Story } from './story.js';
+import { Fireworks } from './fireworks.js';
 
 /* --------------------------------------------------------------- renderer */
 
@@ -164,6 +166,10 @@ function applyTimeOfDay(t) {
 // alone — the game does not need the network, it only makes use of one.
 const net = new Net();
 await net.connect();
+// Before anything is built: if somebody already ran the sun down in this room,
+// the island we are about to construct is the one at *that* hour, with the
+// weather and the villagers to match.
+if (net.rush) sim.hurry(net.rush);
 sim.read();
 
 goTo(ISLAND);
@@ -199,6 +205,39 @@ const HOUSES = [
 
 /** The room whose door is on this tile, if any — only ever asked outdoors. */
 const houseAt = (x, z) => HOUSES.find((r) => r.door.x === x && r.door.z === z);
+
+/*
+  Amy, and the one thread of this world that runs in an order rather than on the
+  clock. She joins the villagers rather than being kept apart from them: she
+  wants the same self-lit floor after dark, the same dot on the map, the same
+  everything — the only thing about her that is not a villager is that talking to
+  her changes where she is, and that lives in story.js.
+*/
+const story = new Story(scene, { parlour: HOUSES[0], dining: HOUSES[1] });
+npcs.push(story.amy);
+
+// The sky going to pieces, when a script says it does. Yours alone and not on
+// the wire — see fireworks.js for why that is the right answer and not a corner
+// being cut.
+const fireworks = new Fireworks(scene);
+story.onFireworks = () => fireworks.start(player.position);
+
+/*
+  ...and the one thing in the story that is not yours alone. Asking her to watch
+  the stars runs the sun down over the whole island, so it goes to the relay
+  rather than straight to our own clock.
+
+  Sent and *not* applied here, which is the whole point: the relay is entitled to
+  refuse — it will not take two clock changes in a handful of seconds — and a
+  client that had already moved its own sun would be the one machine in the room
+  on an hour of its own. So we ask, and we change our sky when we are told to,
+  by the same message everybody else is told by. It comes straight back, so this
+  costs a round trip nobody can see.
+
+  With no relay to ask there is nobody to disagree with, and it applies here.
+*/
+story.onNightfall = (rush) => (net.online ? net.hurry(rush) : sim.hurry(rush));
+net.onRush = (rush) => sim.hurry(rush);
 
 /**
  * What this step would do if it is a step through a door — going in from the
@@ -265,6 +304,10 @@ dialogue.context = () => ({
   time: partOfDay((readDay() * 24 + 6) % 24),
 });
 
+// A line that is supposed to do something to the world says so, and this is
+// where the box hands that over to whoever can. See dialogue.js.
+dialogue.onCue = (cue) => story.cue(cue);
+
 /* ----------------------------------------------------------------- players */
 // Everyone else in the room. They are told to us one step at a time and nothing
 // else: no weather, no villagers, no world — all of that each machine already
@@ -294,6 +337,8 @@ net.onDrop = () => {
 // step. Either one skipped leaves somebody standing still and invisible.
 const arrive = () => {
   for (const p of net.roster) net.onJoin(p);
+  // The hour may have moved on without us while the tab was in the cache.
+  if (net.rush) sim.hurry(net.rush);
   net.step(player.tileX, player.tileZ, player.facing, here().id);
 };
 arrive();
@@ -393,6 +438,13 @@ function keyDown(code) {
     held.clear();
     return dialogue.key(code);
   }
+  // Nor is watching. A scene is playing — she is walking out of a door, or off
+  // down the sand — and it is hers until it is over. Swallowed rather than
+  // ignored, so nothing is left held down to fire the moment control comes back.
+  if (story.busy) {
+    held.clear();
+    return true;
+  }
   if (TALK_KEYS.has(code)) {
     interact();
     return true;
@@ -441,13 +493,20 @@ function facing() {
 }
 
 function interact() {
+  if (story.busy) return;
   const target = facing();
   if (!target) return;
   if (target.peer) {
     chat.talkTo(target.peer.id);
   } else if (target.npc) {
-    target.npc.talking = true;
-    dialogue.start(target.npc.script, () => { target.npc.talking = false; });
+    const npc = target.npc;
+    npc.talking = true;
+    // How it ended, and where it ended, for anybody whose next conversation
+    // depends on this one. A villager has no onDone and never notices.
+    dialogue.start(npc.script, (why, ending) => {
+      npc.talking = false;
+      npc.onDone?.(why, ending);
+    });
   } else {
     dialogue.start(message(SIGNS[target.sign] ?? WORN_SIGN));
   }
@@ -510,7 +569,7 @@ function frame() {
     before the step rather than after, so nobody ever stands in a doorway — the
     move and the arrival are the same move.
   */
-  const dir = dialogue.active || toolbar.typing ? -1 : inputDirection();
+  const dir = dialogue.active || toolbar.typing || story.busy ? -1 : inputDirection();
   const through = dir >= 0 && !player.moving ? doorway(dir) : null;
   if (through) through();
 
@@ -520,14 +579,30 @@ function frame() {
   // it at the same moment we do. Standing still costs nothing.
   if (player.stepCount !== walked) net.step(player.tileX, player.tileZ, player.facing, here().id);
 
-  for (const npc of npcs) npc.update(dt, YAW_INDEX, indoors ? null : player);
+  /*
+    Somebody only looks up at you if you are in the same place they are.
+
+    This used to be "nobody looks at you while you are indoors", which was right
+    for as long as every villager was outdoors: a room has no villagers in it, so
+    there was nobody in here to do the looking. Now that there is, the test has
+    to be the one that was always meant — the room, not the roof. inBounds() asks
+    it of wherever we currently are, and three hundred tiles of empty coordinate
+    space between the places is what makes that answer free.
+  */
+  for (const npc of npcs) {
+    npc.update(dt, YAW_INDEX, inBounds(npc.tileX, npc.tileZ) ? player : null);
+  }
   for (const who of remotes.values()) who.update(dt, YAW_INDEX);
+  // After the villagers, so a scene that ends on the step she has just finished
+  // taking ends on the frame she finished it, not the one after.
+  story.update(dt);
+  fireworks.update(dt);
   dialogue.update(dt);
   // Anything said to us while the box was busy has been queued rather than
   // thrown on screen over the top of whatever was there; this is where it lands.
   chat.drain();
   toolbar.update();
-  dialogue.showHint(!dialogue.active && facing()?.verb);
+  dialogue.showHint(!dialogue.active && !story.busy && facing()?.verb);
   touch?.showBack(dialogue.active);
   if (minimap) minimap.el.root.hidden = indoors;
   if (!indoors) minimap?.update(player, remotes, npcs, net.id);
@@ -563,5 +638,5 @@ Object.assign(window, {
   setWeather: (type) => weather.force(type),
   reflection, puddles, sim, net, remotes, chat, channel, toolbar, touch, minimap,
   here, ISLAND, HOUSES, doorway,
-  weather,
+  weather, story, fireworks,
 });

@@ -36,6 +36,28 @@ const SAY_WINDOW = 2000;
 const HEARTBEAT = 10000;          // how often to check everyone is still there
 
 const rooms = new Map();          // key -> Map<id, client>
+/*
+  key -> the room's clock rush, if anybody has run one.
+
+  The one piece of world state this server holds, and it holds it for the same
+  reason it holds nothing else: a rush cannot be worked out from the seed and the
+  epoch, because it happened because somebody did something. Four numbers, kept
+  so that whoever walks in next is told what hour it really is rather than the
+  one their own arithmetic would give them. See sim.js.
+*/
+const clocks = new Map();
+const RUSH_WINDOW = 5000;         // no more than one clock change per room per...
+/*
+  ...and a clock outlives the people in it. A room is its epoch and its seed —
+  the pair in the URL — so walking out of one and back into it is returning to
+  the same island, and an island that had its evening should still be having it.
+  Dropping the clock when the last person left made a solo player's page refresh
+  undo the sunset, which from the inside looks exactly like a bug.
+
+  Swept on the heartbeat so this cannot grow without bound: a room nobody has
+  been in for an hour is a room nobody is coming back to.
+*/
+const CLOCK_TTL = 60 * 60 * 1000;
 let nextId = 1;
 
 const send = (ws, msg) => {
@@ -101,6 +123,7 @@ wss.on('connection', (ws, req) => {
     t: 'welcome',
     id: me.id,
     now: Date.now(),
+    rush: clocks.get(key)?.rush ?? null,
     players: [...room.values()]
       .filter((c) => c.id !== me.id && c.x !== null && c.r === me.r)
       .map((c) => ({ id: c.id, x: c.x, z: c.z, f: c.f })),
@@ -118,6 +141,33 @@ wss.on('connection', (ws, req) => {
       // Half of a clock handshake: echo the client's stamp back alongside ours
       // so it can work out the round trip and the offset between us.
       send(ws, { t: 'pong', c: msg.c, s: Date.now() });
+      return;
+    }
+
+    if (msg.t === 'rush') {
+      /*
+        Somebody is running the world's clock forward. Everyone gets it,
+        including whoever asked: they applied it locally the moment they asked,
+        and being handed the stored copy back is what makes sure that the room
+        ends up on one clock rather than on several that nearly agree.
+
+        The bounds are not security — this is a toy on an open port — but a
+        stuck or curious client should not be able to shove the island a year
+        into the future or hold everybody in a permanent sunrise, and one rush
+        every few seconds is more than any story needs.
+      */
+      const r = msg.rush ?? {};
+      const num = (v, lo, hi) => Number.isFinite(v) && v >= lo && v <= hi;
+      if (!num(r.at, -1e9, 1e9) || !num(r.from, 0, 864000)
+          || !num(r.by, 0, 86400) || !num(r.over, 0.5, 300)) return;
+
+      const now = Date.now();
+      const held = clocks.get(key);
+      if (held && now - held.when < RUSH_WINDOW) return;
+
+      const rush = { at: r.at, from: r.from, by: r.by, over: r.over };
+      clocks.set(key, { rush, when: now });
+      broadcast(room, { t: 'rush', rush });
       return;
     }
 
@@ -226,6 +276,7 @@ wss.on('connection', (ws, req) => {
     if (!room.has(me.id)) return;
     room.delete(me.id);
     tell(room, me.r, { t: 'bye', id: me.id });
+    // The room goes; its clock stays until the sweep gives up on it.
     if (room.size === 0) rooms.delete(key);
   };
   ws.on('close', leave);
@@ -248,6 +299,12 @@ setInterval(() => {
     }
     ws.alive = false;
     ws.ping();
+  }
+
+  // And forget the hour in rooms nobody has stood in for a long time.
+  const now = Date.now();
+  for (const [key, clock] of clocks) {
+    if (!rooms.has(key) && now - clock.when > CLOCK_TTL) clocks.delete(key);
   }
 }, HEARTBEAT);
 

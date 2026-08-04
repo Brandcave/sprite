@@ -45,6 +45,7 @@ const WARMUP = 120;               // decisions a fresh client replays to settle 
 export class Npc extends Character {
   constructor(scene, tileX, tileZ, {
     index = 0, roam = 3, script = null, sprites = VILLAGERS.straw, tipsy = false,
+    dot = null,
   } = {}) {
     // a slightly slower cadence than the hero, so the player reads as the quick one
     super(scene, sprites, tileX, tileZ, { stepTime: 0.26 });
@@ -56,6 +57,15 @@ export class Npc extends Character {
     this.tipsy = tipsy;
     this.talking = false;
     this.decided = -1;
+    // What colour this one is on the minimap, if the villagers' teal is not it.
+    this.dot = dot;
+    // Told when a conversation with this one closes, and how. Villagers have
+    // nothing to do with that; somebody whose next line depends on the last one
+    // does. See story.js.
+    this.onDone = null;
+    // A walk somebody else decided on — see follow().
+    this.route = null;
+    this.onArrive = null;
 
     // Walk the path this villager has already taken since the world began, so
     // it is standing where everyone else can see it standing.
@@ -157,15 +167,55 @@ export class Npc extends Character {
     }
   }
 
+  /**
+   * Walk a route somebody else worked out — a list of world directions, one
+   * step each — and say so when it runs out.
+   *
+   * This is the one way a villager moves that is not a function of the shared
+   * clock, and it is deliberately a separate door into this class rather than
+   * something folded into decide(). A scheduled walk is the same on every
+   * machine because everybody computes it; a route is walked because something
+   * happened to one person, and pretending the two are the same kind of motion
+   * is how the first one stops being reproducible. While a route is being walked
+   * the schedule is not consulted at all, and when it ends she is simply back on
+   * the schedule wherever she now stands.
+   */
+  follow(route, onArrive = null) {
+    this.route = [...route];
+    this.onArrive = onArrive;
+  }
+
   /** @param player whoever might be worth looking at, or null if nobody is */
   update(dt, cameraYawIndex, player = null) {
-    if (!this.talking) this.advanceTo(sim.tick);
+    if (this.route) {
+      // One step per tile, and the next only once the last has landed.
+      if (!this.moving) {
+        const dir = this.route.shift();
+        // A refused step is not worth stalling a scene over: she has been given
+        // a route that was clear when it was worked out, and if the world has
+        // moved under it since, walking on is better than standing still
+        // forever with the player unable to move.
+        if (dir === undefined) {
+          this.route = null;
+          const done = this.onArrive;
+          this.onArrive = null;
+          done?.();
+        } else {
+          this.step(dir, cameraYawIndex);
+        }
+      }
+    } else if (!this.talking) {
+      this.advanceTo(sim.tick);
+    }
 
     // Noticing is cosmetic — it turns the head and nothing else, so it can
     // safely depend on where a player happens to be. And there may be nobody:
     // villagers keep walking their schedule while you are indoors, with nobody
     // out there to notice.
-    if (player) {
+    // ...but not while walking a route. Somebody leaving the room looks where
+    // they are going; a head that swivels back to you on the way out undoes the
+    // whole point of watching them leave.
+    if (player && !this.route) {
       if (this.talking) {
         this.lookAt(player, cameraYawIndex);
       } else if (!this.moving) {

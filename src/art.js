@@ -77,6 +77,21 @@ export const PALETTE = {
   // shells, bleached against the sand
   E: '#f4ead6',
   H: '#c9ab7c',         // ridge / growth line — the shape reads from these
+  // Amy. Auburn and rose, because the two villagers already own brown-and-blue
+  // and straw-and-teal, and the one thing her sprite has to do before it does
+  // anything else is not be mistaken for either of them.
+  // Authored light, and it has to be: the sun is behind the world, so every
+  // camera-facing pixel of her is already in shadow before the side faces darken
+  // it again. A believable auburn picked here reads as a black hood on screen —
+  // the same reason the palm fronds above are lighter than they look.
+  // Copper rather than scarlet, and the gap is deliberate: the hero's cap is
+  // `r` above, and a girl whose hair is the player's own red is a girl you spend
+  // the first second of every encounter double-taking at.
+  A: '#bd6a38',         // hair, lit
+  D: '#8a4520',         // hair, shade
+  I: '#e8628c',         // dress, lit
+  M: '#a63a63',         // dress, shade
+  O: '#f7c3d4',         // the pale trim across the bodice
 };
 
 // ---------------------------------------------------------------- tile art
@@ -180,6 +195,28 @@ export const TILES = {
     'EcEEEEEcEcEEEEEE',
     'cEEEEEEEcEEEEEEE',
   ],
+  // The mat by the door, laid on top of the floor rather than tiled. It is the
+  // only bright thing indoors, which is the whole job: it says *here* is the way
+  // out without a label, an arrow, or a line of dialogue.
+  rug: [
+    'FFFFFFFFFFFFFFFF',
+    'FmmFmmFmmFmmFmmF',
+    'FFFFFFFFFFFFFFFF',
+    'F44444444444444F',
+    'F44mm44mm44mm44F',
+    'F44mm44mm44mm44F',
+    'F44444444444444F',
+    'F44444444444444F',
+    'F44444444444444F',
+    'F44444444444444F',
+    'F44mm44mm44mm44F',
+    'F44mm44mm44mm44F',
+    'F44444444444444F',
+    'FFFFFFFFFFFFFFFF',
+    'FmmFmmFmmFmmFmmF',
+    'FFFFFFFFFFFFFFFF',
+  ],
+
   stone: [
     'cccCccccccCccccc',
     'ccccccCccccccccc',
@@ -1212,6 +1249,175 @@ const BUM_RIGHT_B = [
   '......kkk.......',
 ];
 
+/*
+  Amy.
+
+  Same 16x16 grid and the same hard outline as everybody else, so she belongs to
+  this cast — but the silhouette is doing more work here than on any other sprite
+  in the file, because she is the one character the player has to pick out of a
+  beach at a glance and then keep looking at.
+
+  Three things carry it, and all three are read before any colour is:
+  hair that falls past the shoulders and is wider than the head, so the outline
+  is not the cap-and-shoulders shape every other person here has; a skirt that
+  flares two pixels past the waist on the bottom two rows, which is the only
+  widening silhouette in the whole cast; and no hat at all, where the hero has a
+  cap and both villagers have a brim or a shawl. Auburn and rose then say which
+  girl she is, but the shape has already said that she is one.
+*/
+
+const AMY_DOWN_A = [
+  '.....kkkkkk.....',
+  '....kAAAAAAk....',
+  '...kAAAAAAAAk...',
+  '..kDAAAAAAAADk..',
+  '..kDAssssssADk..',
+  '..kDAskssksADk..',
+  '..kDAssSSssADk..',
+  '..kDAAssssAADk..',
+  '..kDAAAssAAADk..',
+  '..kDAIIIIIIADk..',
+  '..kDAIOOOOIADk..',
+  '..kDIIIIIIIIDk..',
+  '..kIIIIIIIIIIk..',
+  '.kIIIIIIIIIIIIk.',
+  '.kMMMMMMMMMMMMk.',
+  '...kssk..kssk...',
+];
+
+const AMY_DOWN_B = [
+  '.....kkkkkk.....',
+  '....kAAAAAAk....',
+  '...kAAAAAAAAk...',
+  '..kDAAAAAAAADk..',
+  '..kDAssssssADk..',
+  '..kDAskssksADk..',
+  '..kDAssSSssADk..',
+  '..kDAAssssAADk..',
+  '..kDAAAssAAADk..',
+  '..kDAIIIIIIADk..',
+  '..kDAIOOOOIADk..',
+  '..kDIIIIIIIIDk..',
+  '..kIIIIIIIIIIk..',
+  '..kIIIIIIIIIIIIk',
+  '..kMMMMMMMMMMMMk',
+  '....kssk..kssk..',
+];
+
+const AMY_UP_A = [
+  '.....kkkkkk.....',
+  '....kAAAAAAk....',
+  '...kAAAAAAAAk...',
+  '..kDAAAAAAAADk..',
+  '..kDAAAAAAAADk..',
+  '..kDADAAAADADk..',
+  '..kDAAAAAAAADk..',
+  '..kDADAAAADADk..',
+  '..kDAAAAAAAADk..',
+  '..kDAIIIIIIADk..',
+  '..kDAIIIIIIADk..',
+  '..kDIIIIIIIIDk..',
+  '..kIIIIIIIIIIk..',
+  '.kIIIIIIIIIIIIk.',
+  '.kMMMMMMMMMMMMk.',
+  '...kssk..kssk...',
+];
+
+const AMY_UP_B = [
+  '.....kkkkkk.....',
+  '....kAAAAAAk....',
+  '...kAAAAAAAAk...',
+  '..kDAAAAAAAADk..',
+  '..kDAAAAAAAADk..',
+  '..kDADAAAADADk..',
+  '..kDAAAAAAAADk..',
+  '..kDADAAAADADk..',
+  '..kDAAAAAAAADk..',
+  '..kDAIIIIIIADk..',
+  '..kDAIIIIIIADk..',
+  '..kDIIIIIIIIDk..',
+  '..kIIIIIIIIIIk..',
+  '..kIIIIIIIIIIIIk',
+  '..kMMMMMMMMMMMMk',
+  '....kssk..kssk..',
+];
+
+const AMY_LEFT_A = [
+  '.....kkkkkk.....',
+  '....kAAAAAAk....',
+  '...kAAAAAAAAk...',
+  '..kssAAAAAAADk..',
+  '..ksksAAAAAADk..',
+  '..ksssAAAAAADk..',
+  '..kSssAAAAAADk..',
+  '...kssAAAAADk...',
+  '...kIIAAAAADk...',
+  '..kIOIIAAAADk...',
+  '..kIIIIIIAADk...',
+  '..kIIIIIIIIAk...',
+  '.kIIIIIIIIIIk...',
+  '.kIIIIIIIIIIk...',
+  '.kMMMMMMMMMMk...',
+  '...kssk.........',
+];
+
+const AMY_LEFT_B = [
+  '.....kkkkkk.....',
+  '....kAAAAAAk....',
+  '...kAAAAAAAAk...',
+  '..kssAAAAAAADk..',
+  '..ksksAAAAAADk..',
+  '..ksssAAAAAADk..',
+  '..kSssAAAAAADk..',
+  '...kssAAAAADk...',
+  '...kIIAAAAADk...',
+  '..kIOIIAAAADk...',
+  '..kIIIIIIAADk...',
+  '..kIIIIIIIIAk...',
+  '..kIIIIIIIIIIk..',
+  '..kIIIIIIIIIIk..',
+  '..kMMMMMMMMMMk..',
+  '.....kssk.......',
+];
+
+const AMY_RIGHT_A = [
+  '.....kkkkkk.....',
+  '....kAAAAAAk....',
+  '...kAAAAAAAAk...',
+  '..kDAAAAAAAssk..',
+  '..kDAAAAAAsksk..',
+  '..kDAAAAAAsssk..',
+  '..kDAAAAAAssSk..',
+  '...kDAAAAAssk...',
+  '...kDAAAAAIIk...',
+  '...kDAAAAIIOIk..',
+  '...kDAAIIIIIIk..',
+  '...kAIIIIIIIIk..',
+  '...kIIIIIIIIIIk.',
+  '...kIIIIIIIIIIk.',
+  '...kMMMMMMMMMMk.',
+  '.........kssk...',
+];
+
+const AMY_RIGHT_B = [
+  '.....kkkkkk.....',
+  '....kAAAAAAk....',
+  '...kAAAAAAAAk...',
+  '..kDAAAAAAAssk..',
+  '..kDAAAAAAsksk..',
+  '..kDAAAAAAsssk..',
+  '..kDAAAAAAssSk..',
+  '...kDAAAAAssk...',
+  '...kDAAAAAIIk...',
+  '...kDAAAAIIOIk..',
+  '...kDAAIIIIIIk..',
+  '...kAIIIIIIIIk..',
+  '..kIIIIIIIIIIk..',
+  '..kIIIIIIIIIIk..',
+  '..kMMMMMMMMMMk..',
+  '.......kssk.....',
+];
+
 /**
  * Every villager sprite set, by name. An NPC picks one; two of them standing in
  * the same square metre wearing the same face is the thing this is here to stop.
@@ -1235,6 +1441,74 @@ export const VILLAGERS = {
     left: [BUM_LEFT_A, BUM_LEFT_B],
     right: [BUM_RIGHT_A, BUM_RIGHT_B],
   },
+  amy: {
+    down: [AMY_DOWN_A, AMY_DOWN_B],
+    up: [AMY_UP_A, AMY_UP_B],
+    left: [AMY_LEFT_A, AMY_LEFT_B],
+    right: [AMY_RIGHT_A, AMY_RIGHT_B],
+  },
+};
+
+/*
+  Firework shells: one bitmap for the bloom and one for what is left of it a
+  moment later.
+
+  These are the only sprites in the file inked in a colour they are not drawn
+  in. Everything else here picks its palette entries and means them; a firework
+  is the same shape in gold, rose, teal or violet, and authoring four copies of
+  each to say so would be four chances to fix a pixel in three of them. So the
+  bitmap carries the *shading* only — `m` for the hot core of an arm, `c` for
+  its cooling tip — and the shell's actual colour is a multiply at draw time.
+  See fireworks.js.
+
+  Both are symmetric on both axes, which matters more than it sounds: a shell is
+  seen for well under a second, and any lopsidedness reads as a mistake rather
+  than as character at that speed.
+*/
+export const FIREWORK = {
+  // A hot core with eight arms off it. The core has to be solid: a shell is
+  // roughly three hundred pixels across on screen, and an earlier version drawn
+  // as eight two-pixel spokes with nothing in the middle read as a scatter of
+  // pale bars rather than as anything that had exploded.
+  bloom: [
+    '.......cc.......',
+    '..c....cc....c..',
+    '...c...mm...c...',
+    '....c..mm..c....',
+    '.....cmmmmc.....',
+    '..c..cmmmmc..c..',
+    '...ccmmmmmmcc...',
+    'ccmmmmmmmmmmmmcc',
+    'ccmmmmmmmmmmmmcc',
+    '...ccmmmmmmcc...',
+    '..c..cmmmmc..c..',
+    '.....cmmmmc.....',
+    '....c..mm..c....',
+    '...c...mm...c...',
+    '..c....cc....c..',
+    '.......cc.......',
+  ],
+  // And the same shell a moment later: the core spent, the arms carried out
+  // into a ring that is coming apart. Drawn as a ring rather than as a fainter
+  // bloom because a firework does not dim in place, it travels outwards.
+  embers: [
+    '......cccc......',
+    '....c......c....',
+    '..c..........c..',
+    '.c............c.',
+    '................',
+    'c..c........c..c',
+    '................',
+    'c...m......m...c',
+    'c...m......m...c',
+    '................',
+    'c..c........c..c',
+    '................',
+    '.c............c.',
+    '..c..........c..',
+    '....c......c....',
+    '......cccc......',
+  ],
 };
 
 // ----------------------------------------------------------- building parts

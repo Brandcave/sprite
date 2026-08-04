@@ -236,3 +236,343 @@ export const BRAM = {
     },
   },
 };
+
+/*
+  Amy — three conversations that happen in order, in three places, and are the
+  only thing in this file that remembers it has already happened. See story.js
+  for where she is standing for each one.
+
+  The villagers above are ambient: you can have their conversation eleven times
+  and it costs nothing, so every line is written to be worth hearing twice. These
+  are not. Each one runs once, moves her somewhere else, and is gone — so they
+  are written the other way round, for the single time you get them.
+
+  Two things follow from that, and both are visible in the data:
+
+  - The name plate changes line to line. Ambient dialogue is one person talking
+    at you and needs no such thing; this is two people talking, and the plate is
+    the cheapest possible way to say which of them is speaking. Nodes with
+    `name: null` are neither of them — that is the game saying what happened,
+    and it gets no plate at all because nobody said it.
+
+  - Only the opening line of each carries a weather table. She is not here to
+    tell you about the island, and a woman working up to something does not stop
+    to mention the wind. But she does arrive into whatever the day is doing, and
+    the first line is where that shows.
+
+  The three endings of AMY_BEACH are named for the places she goes on to be at.
+  That is not a coincidence to be tidied up later — story.js reads the ending id
+  straight back as a place, which is what keeps the choice and its consequence
+  from being written down twice and drifting apart.
+*/
+
+export const AMY_HOUSE = {
+  name: 'Amy',
+  start: 'intro',
+  nodes: {
+    intro: {
+      text: {
+        clear: 'Oh — hello. I let myself in out of the sun. I did not expect anybody else to be wandering about in it.',
+        wind: 'Shut that behind you, would you? Half the beach has already come in with me as it is.',
+        rain: 'You are dripping on somebody\'s floor. Come in properly or go back out, but do pick one.',
+        storm: 'Sit down. Nobody sensible is going back out in that, and I have decided that you are sensible.',
+      },
+      next: 'name',
+    },
+    name: {
+      text: 'Amy. And no, I do not live here. I came in off a boat, the same as you did.',
+      next: 'ask',
+    },
+    ask: {
+      text: 'Well? You have been stood in that doorway a while now.',
+      choices: [
+        { label: 'You\'re beautiful', next: 'flat' },
+        { label: 'Who are you?', next: 'who' },
+        { label: 'Sorry — I\'ll go', next: 'go' },
+      ],
+    },
+    flat: {
+      text: 'Ha. Straight out with it. Men have said prettier things to me and meant a great deal less by them.',
+      next: 'plain',
+    },
+    who: {
+      text: 'Somebody who does not care to be asked that from a doorway. Come in, and then ask me.',
+      next: 'plain',
+    },
+    go: {
+      text: 'I did not tell you to leave. I said you had been standing there. Those are two different sentences.',
+      next: 'plain',
+    },
+    plain: {
+      text: 'I will save you the guessing. I say what I mean, and I do not soften it afterwards. Most people manage about a day of that.',
+      next: 'stare',
+    },
+    stare: {
+      name: null,
+      text: 'You cannot think of a single thing to say back that would be worth her hearing.',
+      next: 'longer',
+    },
+    longer: {
+      name: 'You',
+      text: 'I think I could manage more than a day.',
+      next: 'amused',
+    },
+    amused: {
+      text: 'Everyone thinks that. On the first day.',
+      next: 'off',
+    },
+    off: {
+      text: 'Anyhow. I am off — I have been under a roof long enough, and the sea does not wait about for a conversation.',
+      next: 'bye',
+    },
+    bye: {
+      text: 'The north shore, if you are still standing there once I have gone. Where the sand runs wide.',
+    },
+  },
+};
+
+export const AMY_BEACH = {
+  name: 'Amy',
+  start: 'intro',
+  nodes: {
+    intro: {
+      text: {
+        clear: {
+          morning: 'You came. Early, as well. I had you down for the sort who turns up at noon.',
+          noon: 'You came. In this heat, too. Sit down before you fall down.',
+          evening: 'You came. Good — this is the hour worth walking all the way down here for.',
+          night: 'You came. In the dark, the whole way down here. That is either very sweet or very stupid.',
+        },
+        any: 'You came. In this, of all things. That is either very sweet or very stupid and I have not settled which.',
+      },
+      next: 'say',
+    },
+    say: {
+      name: 'You',
+      text: 'There is something I did not say in the house.',
+      next: 'more',
+    },
+    more: {
+      name: 'You',
+      text: 'I would like to know you more. I am enamoured by you. Whatever this is — I want more of it.',
+      next: 'tried',
+    },
+    tried: {
+      text: 'Many men have said something close to that, stood about where you are stood now.',
+      next: 'special',
+    },
+    special: {
+      text: 'It is going to take someone special to win my heart. I am not sorry about that.',
+      next: 'try',
+    },
+    try: {
+      name: 'You',
+      text: 'Then I will try.',
+      next: 'where',
+    },
+    where: {
+      text: 'Then take me somewhere, and be there before I am. Where are we going?',
+      choices: [
+        { label: 'Dinner, indoors', next: 'dinner' },
+        { label: 'Picnic at the lagoon', next: 'picnic' },
+        { label: 'Stars, on this beach', next: 'stars' },
+      ],
+    },
+    dinner: {
+      text: 'The house with the long table, then. I will be sat at it before you are through the door.',
+    },
+    picnic: {
+      text: 'The lagoon, then. Bring something worth eating, and do not be clever about it.',
+    },
+    /*
+      The one line in this file that reaches out of the box and changes the
+      world: she wants stars, so the sun goes down — for everybody on the island,
+      not only for whoever asked. See story.js, and sim.hurry() for the mechanism.
+      It is cued here rather than arranged in code because it is part of what she
+      said, and a line that turns out to have been a promise should be able to
+      keep it from where it was spoken.
+    */
+    stars: {
+      text: 'Then let it get dark. The top of the road, where it runs out into the sand — I will be stood at the end of it.',
+      cue: 'nightfall',
+    },
+  },
+};
+
+/*
+  The one that matters — and from `never` onwards it is the same wherever she is
+  sat, which is the point of letting you choose. What she has to say to you does
+  not depend on whether there is a table under it.
+
+  What does depend on it is the first minute. Arriving somewhere is its own small
+  scene: there is a thing to say about the chairs, or the food you brought, or
+  the walk in the dark, and none of those three sentences work in the other two
+  places. So each spot opens with its own bit of banter and then hands over.
+
+  One script rather than three, with three doors into it: amyDate() below picks
+  which one you came in by. Three scripts that happened to share fourteen nodes
+  would be three scripts that slowly stopped sharing them.
+*/
+export const AMY_DATE = {
+  name: 'Amy',
+  start: 'dinner',
+  nodes: {
+    // ---- dinner, at the long table
+    dinner: {
+      text: 'You are late. I have been sat here long enough to have named all six of these chairs.',
+      next: 'dinner2',
+    },
+    dinner2: {
+      name: 'You',
+      text: 'You said you would be at the table before I got through the door. I was only making you honest.',
+      next: 'dinner3',
+    },
+    dinner3: {
+      text: 'Careful. I could get used to being answered back.',
+      next: 'dinner4',
+    },
+    dinner4: {
+      name: 'You',
+      text: 'Then I will keep doing it.',
+      next: 'dinner5',
+    },
+    dinner5: {
+      text: 'Sit down. And stop looking at me like that — the food is over here.',
+      next: 'never',
+    },
+
+    // ---- a picnic on the lip of the lagoon
+    picnic: {
+      text: 'You brought something. I will be honest, I did not entirely expect you to bring something.',
+      next: 'picnic2',
+    },
+    picnic2: {
+      name: 'You',
+      text: 'You said not to be clever about it. So it is bread, and it is fruit, and that is the whole of it.',
+      next: 'picnic3',
+    },
+    picnic3: {
+      text: 'That is the most romantic thing anybody has managed all year, and you did it by not trying.',
+      next: 'picnic4',
+    },
+    picnic4: {
+      name: 'You',
+      text: 'I will remember that.',
+      next: 'picnic5',
+    },
+    picnic5: {
+      text: 'Do not, you will ruin it. Sit — the water goes green just here when the light is low.',
+      next: 'never',
+    },
+
+    // ---- the end of the road, where it meets the north sand, after dark
+    stars: {
+      text: 'You came all the way back up the road in the dark, then.',
+      next: 'stars2',
+    },
+    stars2: {
+      name: 'You',
+      text: 'You said the end of the road.',
+      next: 'stars3',
+    },
+    stars3: {
+      text: 'I did. I did not think you would take me at my word quite so exactly.',
+      next: 'stars4',
+    },
+    stars4: {
+      name: 'You',
+      text: 'I am going to keep doing that.',
+      next: 'stars5',
+    },
+    stars5: {
+      text: 'Lie back, then. You cannot see them properly stood up, and I refuse to be the only one on this beach looking foolish.',
+      next: 'never',
+    },
+
+    never: {
+      name: 'You',
+      text: 'I have never met a girl like you before.',
+      next: 'fit',
+    },
+    fit: {
+      name: 'You',
+      text: 'And I am not sure I am the right fit. I come with a great deal of baggage.',
+      next: 'father',
+    },
+    father: {
+      name: 'You',
+      text: 'My father was never there. And home was not a safe place to be, most days of it.',
+      next: 'chance',
+    },
+    chance: {
+      name: 'You',
+      text: 'But if you would give me a chance, I would do anything to build you a perfect life.',
+      next: 'stop',
+    },
+    stop: {
+      text: 'Stop. Stop there.',
+      next: 'happy',
+    },
+    happy: {
+      text: 'I do not need a man to hand me a perfect life. I am happy. I was happy before you came up this beach.',
+      next: 'partner',
+    },
+    partner: {
+      text: 'What I want is a partner. I want you whole on your own — so that the two of us are whole together.',
+      next: 'fair',
+    },
+    fair: {
+      name: 'You',
+      text: 'That is fair. That is more than fair.',
+      next: 'strong',
+    },
+    strong: {
+      text: 'I need somebody strong, like my father. And present, like my mother. One without the other is no use to me.',
+      next: 'legacy',
+    },
+    legacy: {
+      text: 'And I am not doing this without something to build. Goals — for you, for me, for whatever the two of us turn out to be.',
+      next: 'three',
+    },
+    three: {
+      text: 'Three of them. One, a godly spouse. Two, a godly family.',
+      next: 'stretch',
+    },
+    stretch: {
+      text: 'And three, if I am lucky — and this one is a stretch — something that outlasts the both of us. Generational wealth.',
+      next: 'in',
+    },
+    in: {
+      name: 'You',
+      text: 'I am in. I am in forever.',
+      next: 'kiss',
+    },
+    // The cue goes on the kiss rather than on the line after it, so the sky is
+    // already going by the time you have read the sentence.
+    kiss: {
+      name: null,
+      text: 'She kisses you.',
+      cue: 'fireworks',
+      next: 'sky',
+    },
+    sky: {
+      name: null,
+      text: 'And the sky over the water goes to pieces.',
+      next: 'last',
+    },
+    // The last line, and then the box closes and she simply walks off — which
+    // is why there is no "and she is gone" node here any more. Watching somebody
+    // leave beats being told they left, and the walk is already written: see
+    // leave() in story.js.
+    last: {
+      text: 'Come and find me when you are a complete man.',
+    },
+  },
+};
+
+/**
+ * The date, entered by the door you chose on the beach. The spot names are the
+ * node names are the place ids — one word, three jobs, and nothing in the middle
+ * to fall out of step.
+ */
+export const amyDate = (spot) => ({ ...AMY_DATE, start: spot });

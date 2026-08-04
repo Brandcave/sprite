@@ -16,6 +16,21 @@
       },
     }
 
+  A node may also carry two things the script as a whole normally decides:
+
+    name: 'YOU'   the plate over this line, when it is not the script's owner
+                  speaking. `name: null` takes the plate away entirely, which is
+                  the difference between somebody telling you something and the
+                  game telling you something.
+    cue: 'x'      a name handed to onCue when the line opens. The box does not
+                  know or care what it means; it is how a script says "and this
+                  is the moment the sky goes off" without the script having to
+                  reach into the world to do it.
+
+  And close() reports the node the script came to rest on, so a caller can tell
+  which of three endings it reached without the box having to understand any of
+  them. See story.js, where those ids are also place names.
+
   Long text is wrapped and paginated here, so scripts are written as prose and
   never have to care where the line breaks fall.
 
@@ -244,7 +259,11 @@ export class Dialogue {
     this.onSend = null;
     this.onCancel = null;
     this.onClose = null;
+    // What a `cue` on a node fires. One handler for the whole game, because a
+    // cue is a thing happening in the world, not a thing happening in the box.
+    this.onCue = null;
     this.node = null;
+    this.ending = null;     // the last node reached — reported by close()
     this.pages = [];
     this.page = 0;
     this.shown = 0;         // characters revealed on the current page
@@ -277,8 +296,7 @@ export class Dialogue {
     this.script = script;
     this.composing = false;
     this.onClose = onClose;
-    this.el.name.textContent = script.name ?? '';
-    this.el.name.hidden = !script.name;
+    this.ending = null;
     this.el.entry.hidden = true;
     this.el.keys.hidden = true;
     this.el.root.hidden = false;
@@ -327,10 +345,18 @@ export class Dialogue {
     const node = id ? this.script.nodes[id] : null;
     if (!node) return this.close();
     this.node = node;
+    this.ending = id;
+    // Whoever is speaking this line, which is usually but not always the person
+    // whose script it is: a conversation with two people in it has to be able to
+    // put the other one's name up.
+    const name = 'name' in node ? node.name : this.script.name;
+    this.el.name.textContent = name ?? '';
+    this.el.name.hidden = !name;
     this.pages = paginate(pick(node.text ?? '', this.context()));
     this.page = 0;
     this.hideChoices();
     this.openPage();
+    if (node.cue) this.onCue?.(node.cue);
   }
 
   openPage() {
@@ -433,6 +459,9 @@ export class Dialogue {
    * `why` is 'end' when the text simply ran out, 'sent' when they wrote
    * something, and 'escape' when they walked away from it — which is the
    * difference between a conversation that wants a reply and one that does not.
+   *
+   * The handler is also told the node it ended on, so a script can be read for
+   * which way it went without anything here knowing what the ways are.
    */
   close(why = 'end') {
     this.script = null;
@@ -449,7 +478,7 @@ export class Dialogue {
     this.onClose = null;
     this.onCancel = null;
     this.onSend = null;
-    if (cb) cb(why);
+    if (cb) cb(why, this.ending);
     if (cancelled) cancelled();
   }
 }
