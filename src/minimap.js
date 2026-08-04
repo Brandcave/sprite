@@ -28,7 +28,7 @@ import { capColour } from './identity.js';
   would be the one thing in the world with a memory.
 */
 
-const SCALE = 3;              // screen pixels per tile
+const SCALE = 2;              // screen pixels per tile
 
 /*
   Kept clear of a tile's width on purpose, ring included — the stroke sits
@@ -38,9 +38,9 @@ const SCALE = 3;              // screen pixels per tile
   under somebody else. Staying inside the tile, every centre survives whoever is
   beside them, and a crowd reads as a cluster of colours rather than one blob.
 */
-const PLAYER_DOT = 2;
-const NPC_DOT = 1.3;
-const RING = 0.75;
+const PLAYER_DOT = 1.5;
+const NPC_DOT = 1;
+const RING = 0.5;
 
 // How far you can see from where you are standing. Wide enough that walking the
 // road opens the village either side of it rather than a one-tile thread, and
