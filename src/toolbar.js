@@ -85,7 +85,9 @@ const CSS = `
 }
 .tb-btn svg { width: 19px; height: 19px; display: block; }
 .tb-btn:hover { background: rgba(255, 255, 255, 0.09); }
-.tb-btn[aria-pressed="true"] { background: rgba(255, 212, 122, 0.16); color: #ffe6ab; }
+/* The open tool's button brightens rather than growing a panel of its own. The
+   bar has already opened; saying so twice draws a box inside a box. */
+.tb-btn[aria-pressed="true"] { color: #ffe6ab; }
 .tb-btn[hidden] { display: none; }
 
 /* whatever the chosen tool put in the bar */

@@ -133,7 +133,7 @@ export class Channel {
     stream.className = 'ch-stream';
 
     const entry = document.createElement('div');
-    entry.className = 'ch-entry tb-pane';
+    entry.className = 'ch-entry';
     entry.innerHTML = `
       <span class="ch-prompt">›</span>
       <input class="ch-field" type="text" maxlength="${MAX_TEXT}"
