@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { request } from 'node:https';
 import { Resolver } from 'node:dns/promises';
+import { platform } from 'node:process';
 
 /*
   Open the island to other people for as long as this is running.
@@ -103,6 +104,17 @@ async function serving(host) {
     req.end();
   });
   return body.includes('"ok":true');
+}
+
+/** macOS only, and silent if it is not there — a clipboard is a nicety. */
+function copy(text) {
+  if (platform !== 'darwin') return;
+  try {
+    const pb = spawn('pbcopy');
+    pb.stdin.end(text);
+  } catch {
+    // no clipboard, no matter
+  }
 }
 
 async function waitUntilServing(host, tries = 20) {
@@ -213,19 +225,32 @@ const watch = async (chunk) => {
     return;
   }
 
+  /*
+    Flush left and alone on its line, because a terminal wraps a long line and a
+    wrapped line does not survive being copied — it arrives with a piece missing
+    and no sign that anything is gone. Which produces, once again, a link that
+    fails by looking like an ordinary empty island.
+
+    And on the clipboard, so nobody has to select it at all.
+  */
+  copy(link);
+
   console.log(`
   relay   ${found[0]}  (serving, on :${PORT})
   room    ${room.epoch} · ${room.seed}${room.reused ? '  (the one you came back to)' : ''}
 
-  Send this:
+  Copied to your clipboard — just paste it. It is also here, on its own line,
+  unindented, so selecting it by hand picks up all of it:
 
-  ${link}
+${link}
 
-  Everyone who opens it lands on the same island, in the same weather, and
-  can see each other. It stops working when you stop this — the tunnel takes
-  a new address every time, so tomorrow needs a new link.
+  Everyone who opens it lands on the same island and can see each other. It
+  stops working when you stop this, or when the laptop sleeps or changes
+  network — the tunnel takes a new address each time, and the link goes with it.
 
-  Same island tomorrow:  npm run play -- "${link}"
+  Same island next time:
+
+npm run play -- "${link}"
 `);
 };
 openTunnel();
