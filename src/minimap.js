@@ -1,6 +1,7 @@
 import { PALETTE } from './art.js';
 import { tileAt, MAP_W, MAP_H } from './world.js';
 import { capColour } from './identity.js';
+import { sim } from './sim.js';
 
 /*
   The island from directly above, and who is on it.
@@ -14,7 +15,16 @@ import { capColour } from './identity.js';
   The land is drawn once. It is a fixed array of characters and will not change
   while anybody is looking at it, so it is baked into an offscreen canvas at one
   pixel per tile and blitted each frame with smoothing off. What actually
-  changes is a handful of dots.
+  changes is the fog over it, and a handful of dots.
+
+  The island arrives unknown and is uncovered by walking it. That is worth more
+  here than a complete map would be: an island you have been shown is scenery,
+  and one you have opened up a corner at a time is somewhere you have been. It
+  also gives the far side of the map a reason to exist for anybody who has only
+  ever crossed the plaza.
+
+  What is uncovered is remembered per room, so the walk is not repaid every time
+  the page reloads. A different seed is a different island and starts dark again.
 */
 
 const SCALE = 3;              // screen pixels per tile
@@ -30,6 +40,14 @@ const SCALE = 3;              // screen pixels per tile
 const PLAYER_DOT = 2;
 const NPC_DOT = 1.3;
 const RING = 0.75;
+
+// How far you can see from where you are standing. Wide enough that walking the
+// road opens the village either side of it rather than a one-tile thread, and
+// short enough that the shoreline is still something you have to go and find.
+const SIGHT = 5;
+
+const FOG = 'rgba(12, 18, 34, 0.93)';
+const SAVE_EVERY = 4000;      // at most one write to storage this often
 
 /*
   Only what you would navigate by. Flowers, lamps, signs and rocks are each one
@@ -114,6 +132,79 @@ export class Minimap {
     this.ctx.scale(dpr, dpr);
     this.ctx.imageSmoothingEnabled = false;
     this.land = this.bakeLand();
+
+    this.key = `sando:seen:${sim.epoch}:${sim.seed}`;
+    this.seen = this.load();
+    this.fog = this.bakeFog();
+    this.at = null;             // the tile we last uncovered from
+    this.savedAt = 0;
+    this.dirty = false;
+  }
+
+  /* ------------------------------------------------------------------- fog */
+
+  /**
+   * A bit per tile, packed and base64'd — 3472 tiles come to 434 bytes, which
+   * is small enough that this can be written whole rather than diffed.
+   */
+  load() {
+    const seen = new Uint8Array(MAP_W * MAP_H);
+    try {
+      const saved = localStorage.getItem(this.key);
+      if (!saved) return seen;
+      const bytes = atob(saved);
+      for (let i = 0; i < seen.length; i++) {
+        seen[i] = (bytes.charCodeAt(i >> 3) >> (i & 7)) & 1;
+      }
+    } catch {
+      // no storage, or something unreadable in it: start dark, which is only
+      // ever a walk's worth of loss
+    }
+    return seen;
+  }
+
+  save() {
+    try {
+      const bytes = new Uint8Array(Math.ceil(this.seen.length / 8));
+      for (let i = 0; i < this.seen.length; i++) {
+        if (this.seen[i]) bytes[i >> 3] |= 1 << (i & 7);
+      }
+      localStorage.setItem(this.key, btoa(String.fromCharCode(...bytes)));
+    } catch {
+      // storage full or refused; the map still works for this sitting
+    }
+  }
+
+  /** Opaque over everything unknown, and cleared a tile at a time as it is seen. */
+  bakeFog() {
+    const fog = document.createElement('canvas');
+    fog.width = MAP_W;
+    fog.height = MAP_H;
+    const ctx = fog.getContext('2d');
+    ctx.fillStyle = FOG;
+    ctx.fillRect(0, 0, MAP_W, MAP_H);
+    for (let i = 0; i < this.seen.length; i++) {
+      if (this.seen[i]) ctx.clearRect(i % MAP_W, Math.floor(i / MAP_W), 1, 1);
+    }
+    this.fogCtx = ctx;
+    return fog;
+  }
+
+  /** Everything within sight of a tile, once. */
+  uncover(x, z) {
+    for (let dz = -SIGHT; dz <= SIGHT; dz++) {
+      for (let dx = -SIGHT; dx <= SIGHT; dx++) {
+        if (dx * dx + dz * dz > SIGHT * SIGHT) continue;
+        const tx = x + dx;
+        const tz = z + dz;
+        if (tx < 0 || tz < 0 || tx >= MAP_W || tz >= MAP_H) continue;
+        const i = tz * MAP_W + tx;
+        if (this.seen[i]) continue;
+        this.seen[i] = 1;
+        this.fogCtx.clearRect(tx, tz, 1, 1);
+        this.dirty = true;
+      }
+    }
   }
 
   /** One pixel per tile, drawn once and never again. */
@@ -145,9 +236,29 @@ export class Minimap {
 
   update(player, remotes, npcs, id = null) {
     const { ctx } = this;
+
+    const here = `${player.tileX},${player.tileZ}`;
+    if (here !== this.at) {
+      this.at = here;
+      this.uncover(player.tileX, player.tileZ);
+    }
+    // Written on a timer rather than on every step: a walk across the island is
+    // a hundred of them, and none is worth a trip to storage on its own.
+    const now = performance.now();
+    if (this.dirty && now - this.savedAt > SAVE_EVERY) {
+      this.savedAt = now;
+      this.dirty = false;
+      this.save();
+    }
+
     ctx.clearRect(0, 0, MAP_W * SCALE, MAP_H * SCALE);
     ctx.drawImage(this.land, 0, 0, MAP_W * SCALE, MAP_H * SCALE);
+    ctx.drawImage(this.fog, 0, 0, MAP_W * SCALE, MAP_H * SCALE);
 
+    // People are drawn over the fog rather than hidden by it. The map's whole
+    // job is answering where everybody is, and a fog that hid them would take
+    // that away in exchange for a rule nobody asked it to keep.
+    //
     // Villagers first and smallest. They are part of the scenery here — worth
     // knowing about, never the thing being looked for.
     for (const npc of npcs) this.dot(npc.tileX, npc.tileZ, NPC_DOT, PALETTE.x);
