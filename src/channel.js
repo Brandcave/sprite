@@ -77,8 +77,8 @@ const CSS = `
 }
 @keyframes ch-burst {
   0% { transform: scale(1); opacity: 1; filter: none; }
-  22% { transform: scale(0.9); opacity: 1; }
-  100% { transform: scale(2.1); opacity: 0; filter: blur(4px); }
+  22% { transform: scale(0.92); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; filter: blur(2px); }
 }
 
 .ch-head { font-size: 0.82em; letter-spacing: 0.06em; margin-bottom: 2px; }
@@ -86,8 +86,18 @@ const CSS = `
 .ch-kind { opacity: 0.6; }
 .ch-text { word-break: break-word; }
 
-/* a word said to one person should not look like a word said to the room */
-.ch-bubble[data-private] { border-color: rgba(159, 208, 255, 0.4); }
+/*
+  A word said to one person should not look like a word said to the room, and
+  with the label gone this is the only thing left saying so — hence a tinted
+  pane and a rule down the edge rather than a shade of blue on the name alone.
+*/
+.ch-bubble[data-private] {
+  background: rgba(30, 52, 96, 0.42);
+  border-color: rgba(159, 208, 255, 0.45);
+  box-shadow: inset 3px 0 0 rgba(159, 208, 255, 0.75),
+              inset 0 1px 0 rgba(255, 255, 255, 0.26),
+              0 8px 20px rgba(4, 8, 18, 0.35);
+}
 .ch-bubble[data-private] .ch-who { color: #9fd0ff; }
 
 /*
@@ -248,21 +258,14 @@ export class Channel {
     const who = document.createElement('span');
     who.className = 'ch-who';
     // On something you sent privately, your own name is the one thing you
-    // already know; who heard it is the part worth printing.
+    // already know; who heard it is the part worth printing — and with no
+    // label any more, "You to HOLLY" is also the only thing on the line saying
+    // the room did not hear it.
     who.textContent = to !== null && mine ? `You to ${nameOf(to)}`
       : mine ? 'You'
       : nameOf(from);
 
     head.append(who);
-
-    // Only the private ones are labelled. Public is what talking normally is,
-    // and a label on every line makes the one that matters easier to miss.
-    if (to !== null) {
-      const kind = document.createElement('span');
-      kind.className = 'ch-kind';
-      kind.textContent = ' (Private)';
-      head.append(kind);
-    }
 
     const body = document.createElement('div');
     body.className = 'ch-text';

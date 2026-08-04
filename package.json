@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "server": "node server/index.js",
-    "play": "node scripts/play.mjs"
+    "play": "node scripts/play.mjs",
+    "favicon": "node scripts/favicon.mjs"
   },
   "dependencies": {
     "three": "^0.180.0",
