@@ -17,7 +17,7 @@ import { capColour } from './identity.js';
   changes is a handful of dots.
 */
 
-const SCALE = 4;              // screen pixels per tile
+const SCALE = 3;              // screen pixels per tile
 
 /*
   Kept clear of a tile's width on purpose, ring included — the stroke sits
@@ -27,32 +27,59 @@ const SCALE = 4;              // screen pixels per tile
   under somebody else. Staying inside the tile, every centre survives whoever is
   beside them, and a crowd reads as a cluster of colours rather than one blob.
 */
-const PLAYER_DOT = 2.6;
-const NPC_DOT = 1.7;
-const RING = 1;
+const PLAYER_DOT = 2;
+const NPC_DOT = 1.3;
+const RING = 0.75;
 
-// The map's legend, in the palette the world is already painted from, so the
-// island reads as the same island seen from further away.
+/*
+  Only what you would navigate by. Flowers, lamps, signs and rocks are each one
+  tile of something bright, and a dozen of them scattered about turn the map
+  into confetti with an island somewhere underneath — which is the opposite of
+  what a glance at it is for. Anything not named here draws as the ground it
+  stands on, so those tiles quietly become grass.
+*/
 const INK = {
   '~': PALETTE.W,             // sea
   _: PALETTE.p,               // beach sand
   '.': PALETTE.G,             // grass
   ',': PALETTE.P,             // path
-  '"': PALETTE.g,             // tall grass
   T: PALETTE.d,               // tree
   Y: PALETTE.a,               // palm
-  f: PALETTE.f,               // flower bed
   '#': PALETTE.N,             // fence
-  l: PALETTE.Q,               // street lamp
-  s: PALETTE.n,               // sign
-  o: PALETTE.C,               // rock
   c: PALETTE.c,               // pond curb
   X: PALETTE.N,               // building
 };
 
+/*
+  Muted toward the glass it sits on. At full strength this is the brightest
+  thing on the screen — a saturated green rectangle in the corner of a game
+  whose whole look is a low sun — and it pulls the eye away from the island
+  itself. The land is background here; the only things that should be sharp are
+  the dots, and they are the one thing left unmuted.
+*/
+const BASE = '#16203a';
+const MUTE = 0.62;
+
+const mix = (hex, into, t) => {
+  const a = parseInt(hex.slice(1), 16);
+  const b = parseInt(into.slice(1), 16);
+  const ch = (shift) => {
+    const va = (a >> shift) & 255;
+    const vb = (b >> shift) & 255;
+    return Math.round(va + (vb - va) * t);
+  };
+  return `rgb(${ch(16)}, ${ch(8)}, ${ch(0)})`;
+};
+
+const muted = Object.fromEntries(
+  Object.entries(INK).map(([k, hex]) => [k, mix(hex, BASE, MUTE)]),
+);
+
 const CSS = `
 .mm-root {
-  position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); top: 88px;
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: max(16px, env(safe-area-inset-bottom, 0px));
   z-index: 9; padding: 7px; line-height: 0;
   background: rgba(20, 28, 48, 0.34);
   -webkit-backdrop-filter: blur(14px) saturate(160%);
@@ -97,7 +124,7 @@ export class Minimap {
     const ctx = land.getContext('2d');
     for (let z = 0; z < MAP_H; z++) {
       for (let x = 0; x < MAP_W; x++) {
-        ctx.fillStyle = INK[tileAt(x, z)] ?? PALETTE.G;
+        ctx.fillStyle = muted[tileAt(x, z)] ?? muted['.'];
         ctx.fillRect(x, z, 1, 1);
       }
     }
