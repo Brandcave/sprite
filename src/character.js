@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { voxelGeometry, voxelMaterial, vertexEmissive } from './voxel.js';
-import { isBlocked, groundHeight, MAP_W, MAP_H } from './world.js';
+import { isBlocked, groundHeight, inBounds } from './place.js';
 
 /*
   Everything a tile-stepping character needs: the eight billboarded sprite
@@ -131,7 +131,7 @@ export class Character {
 
   /** Can this character stand on that tile right now? */
   walkable(x, z, ignorePlayers = false) {
-    return x >= 0 && z >= 0 && x < MAP_W && z < MAP_H
+    return inBounds(x, z)
       && !isBlocked(x, z) && !tileOccupied(x, z, this, ignorePlayers);
   }
 

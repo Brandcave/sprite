@@ -25,6 +25,10 @@ const PORT = process.env.PORT ? +process.env.PORT : 8787;
 // server's job is to make sure what it forwards is at least a legal position.
 const MAP_W = 62;
 const MAP_H = 56;
+// Rooms are laid out well past the island in the same coordinate space, so the
+// bound is generous rather than the island's own — see src/place.js.
+const FAR = 1024;
+const ROOMS = 8;
 const STEP_RATE = 25;             // steps per second a client may send
 const MAX_SAY = 120;              // characters in one message
 const SAY_RATE = 4;               // messages per SAY_WINDOW
@@ -41,6 +45,13 @@ const send = (ws, msg) => {
 function broadcast(room, msg, except = null) {
   for (const c of room.values()) {
     if (c.id !== except) send(c.ws, msg);
+  }
+}
+
+/** The same, but only to the people standing in one particular room of it. */
+function tell(room, r, msg, except = null) {
+  for (const c of room.values()) {
+    if (c.id !== except && c.r === r) send(c.ws, msg);
   }
 }
 
@@ -76,6 +87,7 @@ wss.on('connection', (ws, req) => {
     x: null,
     z: null,
     f: 2,
+    r: 0,                           // which room: 0 is the island, 1+ a house
     steps: 0,
     window: 0,
     says: 0,
@@ -90,7 +102,7 @@ wss.on('connection', (ws, req) => {
     id: me.id,
     now: Date.now(),
     players: [...room.values()]
-      .filter((c) => c.id !== me.id && c.x !== null)
+      .filter((c) => c.id !== me.id && c.x !== null && c.r === me.r)
       .map((c) => ({ id: c.id, x: c.x, z: c.z, f: c.f })),
   });
 
@@ -154,8 +166,10 @@ wss.on('connection', (ws, req) => {
       const x = msg.x | 0;
       const z = msg.z | 0;
       const f = msg.f | 0;
-      if (x < 0 || z < 0 || x >= MAP_W || z >= MAP_H) return;
+      const r = msg.r | 0;
+      if (x < 0 || z < 0 || x >= FAR || z >= FAR) return;
       if (f < 0 || f > 3) return;
+      if (r < 0 || r > ROOMS) return;
 
       // One tile at a time, and not too many of them. Neither check makes this
       // secure — it is a toy on an open port — but they keep a stuck client or
@@ -167,12 +181,35 @@ wss.on('connection', (ws, req) => {
       }
       if (++me.steps > STEP_RATE) return;
 
+      /*
+        Walking through a door is a room change, and from everybody else's point
+        of view it is an arrival or a departure: the people you were with are
+        told you have gone, and the people you have joined are told you are
+        here. Which is the same pair of messages they would get if you had
+        closed the tab and opened it again somewhere else, so nothing on the
+        other end needs to know doors exist.
+      */
+      if (r !== me.r) {
+        if (me.x !== null) tell(room, me.r, { t: 'bye', id: me.id }, me.id);
+        me.r = r;
+        me.x = x;
+        me.z = z;
+        me.f = f;
+        tell(room, r, { t: 'join', id: me.id, x, z, f }, me.id);
+        for (const c of room.values()) {
+          if (c.id !== me.id && c.r === r && c.x !== null) {
+            send(ws, { t: 'join', id: c.id, x: c.x, z: c.z, f: c.f });
+          }
+        }
+        return;
+      }
+
       if (me.x !== null && Math.abs(x - me.x) + Math.abs(z - me.z) > 1) {
         // Out of step — most likely a client that was asleep in a background
         // tab. Let it through, but as a move rather than a walk.
-        broadcast(room, { t: 'warp', id: me.id, x, z, f }, me.id);
+        tell(room, r, { t: 'warp', id: me.id, x, z, f }, me.id);
       } else {
-        broadcast(room, { t: 'move', id: me.id, x, z, f }, me.id);
+        tell(room, r, { t: 'move', id: me.id, x, z, f }, me.id);
       }
 
       const first = me.x === null;
@@ -180,7 +217,7 @@ wss.on('connection', (ws, req) => {
       me.z = z;
       me.f = f;
       if (first) {
-        broadcast(room, { t: 'join', id: me.id, x, z, f }, me.id);
+        tell(room, r, { t: 'join', id: me.id, x, z, f }, me.id);
       }
     }
   });
@@ -188,7 +225,7 @@ wss.on('connection', (ws, req) => {
   const leave = () => {
     if (!room.has(me.id)) return;
     room.delete(me.id);
-    broadcast(room, { t: 'bye', id: me.id });
+    tell(room, me.r, { t: 'bye', id: me.id });
     if (room.size === 0) rooms.delete(key);
   };
   ws.on('close', leave);

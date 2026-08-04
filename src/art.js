@@ -159,6 +159,27 @@ export const TILES = {
     'PPPPPPPPPPPqPPPP',
   ],
 
+  // Indoors. A cream tile with a faint lattice pressed into it — busy enough
+  // that a floor twenty tiles across does not read as one flat slab, quiet
+  // enough that the furniture standing on it still wins.
+  floor: [
+    'EEEEEEEcEEEEEEEc',
+    'EEEEEEcEcEEEEEcE',
+    'EEEEEcEEEcEEEcEE',
+    'EEEEcEEEEEcEcEEE',
+    'EEEcEEEEEEEcEEEE',
+    'EEcEEEEEEEcEcEEE',
+    'EcEEEEEEEcEEEcEE',
+    'cEEEEEEEcEEEEEcE',
+    'EcEEEEEcEEEEEEEc',
+    'EEcEEEcEEEEEEEcE',
+    'EEEcEcEEEEEEEcEE',
+    'EEEEcEEEEEEEcEEE',
+    'EEEcEcEEEEEcEEEE',
+    'EEcEEEcEEEcEEEEE',
+    'EcEEEEEcEcEEEEEE',
+    'cEEEEEEEcEEEEEEE',
+  ],
   stone: [
     'cccCccccccCccccc',
     'ccccccCccccccccc',

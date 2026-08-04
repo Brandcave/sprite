@@ -108,6 +108,17 @@ export function isBlocked(x, z) {
   return SOLID.has(tileAt(x, z));
 }
 
+/**
+ * The island, as a place — see place.js. Its origin is 0,0 because it was here
+ * first and everything else is laid out around it.
+ */
+export const ISLAND = {
+  id: 0,
+  x0: 0, z0: 0, w: MAP_W, h: MAP_H,
+  isBlocked,
+  groundHeight,
+};
+
 export function groundHeight(x, z) {
   return GROUND[tileAt(x, z)]?.h ?? 0;
 }

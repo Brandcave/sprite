@@ -1,5 +1,7 @@
 import * as THREE from 'three';
-import { buildWorld, tileAt, MAP_W, MAP_H } from './world.js';
+import { buildWorld, tileAt, ISLAND, MAP_W, MAP_H } from './world.js';
+import { goTo, here } from './place.js';
+import { buildInterior } from './interior.js';
 import { Player } from './player.js';
 import { Npc } from './npc.js';
 import { DIRS, characterAt } from './character.js';
@@ -164,6 +166,7 @@ const net = new Net();
 await net.connect();
 sim.read();
 
+goTo(ISLAND);
 const { animated, lamps, foliage, lampMetal, windUniforms, puddles } = buildWorld(scene);
 // Spread arrivals around the plaza: with players blocking each other, a room
 // where everyone spawns on one square is a room where nobody can move.
@@ -183,6 +186,55 @@ const npcs = [
   // Down on the south beach, and steadily less vertical as the day goes on.
   new Npc(scene, 28, 47, { index: 2, roam: 4, script: BRAM, sprites: VILLAGERS.drifter, tipsy: true }),
 ];
+
+/*
+  The two houses, and the rooms behind their doors. The door tile is the one you
+  walk into from the path — the wall the door is painted on — so going inside is
+  not a key you have to know about, it is the step you were already taking.
+*/
+const HOUSES = [
+  buildInterior(scene, 1, { door: { x: 20, z: 18 }, step: { x: 20, z: 19 } }),
+  buildInterior(scene, 2, { door: { x: 39, z: 18 }, step: { x: 39, z: 19 } }),
+];
+
+/** The room whose door is on this tile, if any — only ever asked outdoors. */
+const houseAt = (x, z) => HOUSES.find((r) => r.door.x === x && r.door.z === z);
+
+/**
+ * What this step would do if it is a step through a door — going in from the
+ * path, or back out over the mat — and nothing if it is an ordinary step.
+ */
+function doorway(dir) {
+  const d = DIRS[dir];
+  const x = player.tileX + d.dx;
+  const z = player.tileZ + d.dz;
+  const room = here();
+
+  if (room === ISLAND) {
+    const house = houseAt(x, z);
+    return house ? () => move(house, house.mat, 0) : null;
+  }
+  // out is off the bottom of the mat, which is the one edge that is not a wall
+  const onMat = player.tileX === room.mat.x && player.tileZ === room.mat.z;
+  return onMat && z > player.tileZ ? () => move(ISLAND, room.step, 2) : null;
+}
+
+/**
+ * Go somewhere else. The camera is put down rather than flown, because places
+ * are hundreds of tiles apart and a lerp across that gap would be a three second
+ * shot of the sea.
+ */
+function move(place, to, facing) {
+  goTo(place);
+  player.placeAt(to.x, to.z);
+  player.face(facing, YAW_INDEX);
+  camTarget.copy(player.position);
+  // Everyone we could see is in the place we just left, and everyone here has
+  // not been told about us yet. The relay sorts both out from the room we name.
+  for (const who of remotes.values()) who.remove(scene);
+  remotes.clear();
+  net.step(player.tileX, player.tileZ, player.facing, place.id);
+}
 
 const dialogue = new Dialogue(document.body, TOUCH
   ? { confirm: 'A', send: 'A', cancel: 'B' }
@@ -242,7 +294,7 @@ net.onDrop = () => {
 // step. Either one skipped leaves somebody standing still and invisible.
 const arrive = () => {
   for (const p of net.roster) net.onJoin(p);
-  net.step(player.tileX, player.tileZ, player.facing);
+  net.step(player.tileX, player.tileZ, player.facing, here().id);
 };
 arrive();
 net.watchPage(arrive);
@@ -430,17 +482,45 @@ function frame() {
 
   sim.read();
   dayT = readDay();
+  const indoors = here() !== ISLAND;
   weather.update(player.position);
   puddles.wet.value = weather.wet;
   applyTimeOfDay(dayT);
 
+  /*
+    Indoors the world is the floor and the dark around it. The sun still lights
+    the room and a storm still dims it — the hour and the weather are as true in
+    here as out there — but the sky, the horizon and the rain belong to outside,
+    and the roof is the thing that says so.
+  */
+  scene.fog.near = indoors ? 60 : scene.fog.near;
+  scene.fog.far = indoors ? 200 : scene.fog.far;
+  if (indoors) scene.background.setHex(0x2a2f38);
+  weather.rainField.mesh.visible = !indoors;
+  weather.gusts.mesh.visible = !indoors;
+  for (const house of HOUSES) house.group.visible = indoors && here() === house;
+
+  /*
+    A step that would take you through a door goes through it instead. Checked
+    before the step rather than after, so you never stand in the doorway — the
+    move and the arrival are the same move.
+  */
+  /*
+    A step that would take you through a door goes through it instead. Taken
+    before the step rather than after, so nobody ever stands in a doorway — the
+    move and the arrival are the same move.
+  */
+  const dir = dialogue.active || toolbar.typing ? -1 : inputDirection();
+  const through = dir >= 0 && !player.moving ? doorway(dir) : null;
+  if (through) through();
+
   const walked = player.stepCount;
-  player.update(dt, dialogue.active ? -1 : inputDirection(), YAW_INDEX);
+  player.update(dt, through ? -1 : dir, YAW_INDEX);
   // One message per step taken, sent as the step begins so everyone else walks
   // it at the same moment we do. Standing still costs nothing.
-  if (player.stepCount !== walked) net.step(player.tileX, player.tileZ, player.facing);
+  if (player.stepCount !== walked) net.step(player.tileX, player.tileZ, player.facing, here().id);
 
-  for (const npc of npcs) npc.update(dt, YAW_INDEX, player);
+  for (const npc of npcs) npc.update(dt, YAW_INDEX, indoors ? null : player);
   for (const who of remotes.values()) who.update(dt, YAW_INDEX);
   dialogue.update(dt);
   // Anything said to us while the box was busy has been queued rather than
@@ -449,7 +529,8 @@ function frame() {
   toolbar.update();
   dialogue.showHint(!dialogue.active && facing()?.verb);
   touch?.showBack(dialogue.active);
-  minimap?.update(player, remotes, npcs, net.id);
+  if (minimap) minimap.el.root.hidden = indoors;
+  if (!indoors) minimap?.update(player, remotes, npcs, net.id);
   updateCamera(dt);
   for (const fn of animated) fn(t);
 
@@ -481,5 +562,6 @@ Object.assign(window, {
   },
   setWeather: (type) => weather.force(type),
   reflection, puddles, sim, net, remotes, chat, channel, toolbar, touch, minimap,
+  here, ISLAND, HOUSES, doorway,
   weather,
 });

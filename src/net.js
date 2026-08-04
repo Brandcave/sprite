@@ -181,8 +181,14 @@ export class Net {
     }
   }
 
-  step(x, z, facing) {
-    this.send({ t: 'step', x, z, f: facing });
+  /**
+   * Where we are, and which room we are in. The room matters as much as the
+   * coordinates: the relay tells people about each other only when both are in
+   * the same one, which is what makes a house something you are actually inside
+   * rather than somewhere the walls happen to hide you.
+   */
+  step(x, z, facing, room = 0) {
+    this.send({ t: 'step', x, z, f: facing, r: room });
   }
 
   /**

@@ -146,6 +146,7 @@ export class Minimap {
 
     parent.append(root);
 
+    this.el = { root };
     this.ctx = canvas.getContext('2d');
     this.ctx.scale(dpr, dpr);
     this.ctx.imageSmoothingEnabled = false;
