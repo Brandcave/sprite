@@ -23,7 +23,9 @@ import { nameOf } from './identity.js';
 
 const LIFE = 14000;           // how long a line stays up
 const FADE = 600;             // and how long it takes to go
-const STACK = 6;              // most lines on screen at once
+const POP = 260;              // and how long it takes to burst
+const STACK = 4;              // most lines on screen at once
+const BOUNCE = 420;           // opening and closing the field
 const MAX_TEXT = 120;         // the relay's cap, so the field cannot overrun it
 
 const CSS = `
@@ -53,14 +55,23 @@ const CSS = `
 
 .ch-bubble {
   padding: 8px 11px 9px;
+  transform-origin: 20% 100%;
   animation: ch-rise 260ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
   transition: opacity ${FADE}ms ease, transform ${FADE}ms ease;
 }
 @keyframes ch-rise {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(14px) scale(0.94); }
   to { opacity: 1; transform: none; }
 }
+
+/* Two ways to leave, because they mean different things. Age drifts off the
+   top, having been read. Being crowded out bursts on the spot — the line is
+   not finished with, it has been shoved, and it should look shoved. */
 .ch-bubble.ch-gone { opacity: 0; transform: translateY(-10px); }
+.ch-bubble.ch-pop {
+  opacity: 0; transform: scale(1.32);
+  transition: opacity ${POP}ms ease-out, transform ${POP}ms cubic-bezier(0.3, 1.5, 0.6, 1);
+}
 
 .ch-head { font-size: 0.82em; letter-spacing: 0.06em; margin-bottom: 2px; }
 .ch-who { color: #ffd47a; }
@@ -71,14 +82,44 @@ const CSS = `
 .ch-bubble[data-private] { border-color: rgba(159, 208, 255, 0.4); }
 .ch-bubble[data-private] .ch-who { color: #9fd0ff; }
 
-.ch-entry { display: flex; align-items: center; gap: 7px; padding: 8px 11px; pointer-events: auto; }
-.ch-prompt { color: #ffd47a; }
+/*
+  Idle it is a button the size of its own icon; open it is somewhere to write.
+  The icon does not move between the two, so the panel grows out of the thing
+  you pressed rather than replacing it.
+*/
+.ch-entry {
+  display: flex; align-items: center; gap: 9px;
+  align-self: flex-start; width: 100%; padding: 8px 12px;
+  overflow: hidden; pointer-events: auto;
+  transition: width ${BOUNCE}ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              padding ${BOUNCE}ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.ch-root[data-state="idle"] .ch-entry { width: 46px; padding: 8px; }
+
+.ch-toggle {
+  flex: none; display: grid; place-items: center;
+  width: 26px; height: 26px; padding: 0;
+  background: none; border: 0; color: #ffd47a; cursor: pointer;
+  pointer-events: auto;
+}
+.ch-toggle svg { width: 19px; height: 19px; display: block; }
+
+/* the whole thing springs a little as it opens and shuts */
+.ch-entry.ch-boing { animation: ch-boing ${BOUNCE}ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes ch-boing {
+  0% { transform: scale(0.88); }
+  55% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
 .ch-field {
   flex: 1; min-width: 0; padding: 0;
   font: inherit; color: #f4f8ff; background: none; border: 0; outline: none;
   caret-color: #ffd47a;
   -webkit-user-select: text; user-select: text;
+  transition: opacity 180ms ease;
 }
+.ch-root[data-state="idle"] .ch-field { opacity: 0; pointer-events: none; }
 .ch-field::placeholder { color: rgba(234, 242, 255, 0.45); }
 
 /* clear of the thumbs on a phone, and out from under its keyboard */
@@ -95,10 +136,16 @@ export class Channel {
     const root = document.createElement('div');
     root.className = 'ch-root';
     root.hidden = true;
+    root.dataset.state = 'idle';
     root.innerHTML = `
       <div class="ch-stream"></div>
       <div class="ch-entry ch-pane">
-        <span class="ch-prompt">›</span>
+        <button class="ch-toggle" type="button" aria-label="Chat">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"
+               stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 5.5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H8l-4 3.5V13.5a2 2 0 0 1-1-1.8z"/>
+          </svg>
+        </button>
         <input class="ch-field" type="text" maxlength="${MAX_TEXT}"
                placeholder="say something to the room"
                autocomplete="off" autocapitalize="sentences" spellcheck="false">
@@ -109,9 +156,14 @@ export class Channel {
     this.el = {
       root,
       stream: root.querySelector('.ch-stream'),
+      entry: root.querySelector('.ch-entry'),
       field: root.querySelector('.ch-field'),
+      toggle: root.querySelector('.ch-toggle'),
     };
     this.visible = false;
+    this.open = false;
+
+    this.el.toggle.addEventListener('click', () => this.setOpen(!this.open));
 
     /*
       Keystrokes stop here. The game listens for keys on the window, so without
@@ -125,10 +177,29 @@ export class Channel {
         this.send();
         e.preventDefault();
       } else if (e.code === 'Escape') {
-        this.el.field.blur();
+        this.setOpen(false);
         e.preventDefault();
       }
     });
+  }
+
+  /**
+   * Open to write, shut to play. Shut it is the size of its own icon, which is
+   * all a chat needs to be while nobody is saying anything — the lines still
+   * rise above it either way, so closing it never costs you the conversation,
+   * only the keyboard.
+   */
+  setOpen(on) {
+    if (on === this.open) return;
+    this.open = on;
+    this.el.root.dataset.state = on ? 'open' : 'idle';
+
+    this.el.entry.classList.remove('ch-boing');
+    void this.el.entry.offsetWidth;          // let the animation start again
+    this.el.entry.classList.add('ch-boing');
+
+    if (on) this.el.field.focus();
+    else this.el.field.blur();
   }
 
   /** Whether the player is typing here, so the game can leave the keys alone. */
@@ -139,16 +210,16 @@ export class Channel {
   send() {
     const text = this.el.field.value.trim();
     this.el.field.value = '';
-    this.el.field.blur();
+    this.setOpen(false);
     if (text) this.net.sayAll(text);
   }
 
-  /** Fade a line out and take it away once it has finished going. */
-  retire(bubble) {
+  /** See it off, either by drifting away or by bursting. */
+  retire(bubble, how = 'gone') {
     if (bubble.dataset.going !== undefined) return;
     bubble.dataset.going = '';
-    bubble.classList.add('ch-gone');
-    setTimeout(() => bubble.remove(), FADE);
+    bubble.classList.add(`ch-${how}`);
+    setTimeout(() => bubble.remove(), how === 'pop' ? POP : FADE);
   }
 
   /**
@@ -188,9 +259,10 @@ export class Channel {
     this.el.stream.append(bubble);
     setTimeout(() => this.retire(bubble), LIFE);
 
-    // A flood should scroll off the top rather than grow down the screen.
+    // Four at a time. Anything older bursts rather than drifting, because it is
+    // being shoved off rather than running out.
     const live = [...this.el.stream.children].filter((b) => b.dataset.going === undefined);
-    for (const old of live.slice(0, -STACK)) this.retire(old);
+    for (const old of live.slice(0, -STACK)) this.retire(old, 'pop');
   }
 
   /**
@@ -199,7 +271,7 @@ export class Channel {
    * is a worse trade than a panel that lingers a moment.
    */
   show(on) {
-    const keep = on || this.typing || this.el.field.value !== '';
+    const keep = on || this.open || this.el.field.value !== '';
     if (keep === this.visible) return;
     this.visible = keep;
     this.el.root.hidden = !keep;
