@@ -710,10 +710,9 @@ const recap = (sprites, ink) => Object.fromEntries(
   *with* rather than talked *at*. Colour is for telling two people apart, which
   is a question you only ask once you know they are both people.
 */
-export const PLAYER_SKINS = [
-  HERO,
-  ...['1', '2', '3', '4', '5', '6', '7'].map((ink) => recap(HERO, ink)),
-];
+export const PLAYER_INKS = ['r', '1', '2', '3', '4', '5', '6', '7'];
+
+export const PLAYER_SKINS = PLAYER_INKS.map((ink) => (ink === 'r' ? HERO : recap(HERO, ink)));
 
 
 // ------------------------------------------------------------------- npc art

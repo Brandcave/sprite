@@ -14,6 +14,7 @@ import { Net } from './net.js';
 import { RemotePlayer } from './remote.js';
 import { PlanarReflection } from './reflection.js';
 import { TOUCH, TouchControls } from './touch.js';
+import { Minimap } from './minimap.js';
 
 /* --------------------------------------------------------------- renderer */
 
@@ -360,6 +361,10 @@ addEventListener('keyup', (e) => keyUp(e.code));
 // written one, Escape closes either — so the buttons need no idea which is up.
 const touch = TOUCH ? new TouchControls({ onKey: keyDown, onKeyUp: keyUp }) : null;
 
+// Desktop only. A phone has neither the corner to spare nor the problem —
+// its screen is the size of the thing it would be helping you look at.
+const minimap = TOUCH ? null : new Minimap();
+
 /**
  * Whatever the hero is squarely facing and could act on: a villager to talk to,
  * or a sign to read. One tile ahead, and only while standing still — reaching
@@ -442,6 +447,7 @@ function frame() {
   channel.show(net.online && remotes.size > 0);
   dialogue.showHint(!dialogue.active && facing()?.verb);
   touch?.showBack(dialogue.active);
+  minimap?.update(player, remotes, npcs, net.id);
   updateCamera(dt);
   for (const fn of animated) fn(t);
 
@@ -472,6 +478,6 @@ Object.assign(window, {
     applyTimeOfDay(dayT);
   },
   setWeather: (type) => weather.force(type),
-  reflection, puddles, sim, net, remotes, chat, channel, touch,
+  reflection, puddles, sim, net, remotes, chat, channel, touch, minimap,
   weather,
 });

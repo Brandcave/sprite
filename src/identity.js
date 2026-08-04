@@ -1,4 +1,4 @@
-import { PLAYER_SKINS } from './art.js';
+import { PALETTE, PLAYER_INKS, PLAYER_SKINS } from './art.js';
 
 /*
   Who somebody is, worked out from the one thing the relay assigns them: an id.
@@ -24,3 +24,10 @@ const slot = (id, n) => (((id ?? 1) - 1) % n + n) % n;
 export const nameOf = (id) => (id == null ? 'YOU' : NAMES[slot(id, NAMES.length)]);
 
 export const skinFor = (id) => PLAYER_SKINS[slot(id, PLAYER_SKINS.length)];
+
+/**
+ * The colour of somebody's cap, for anything that has to stand for them without
+ * room to draw them — a dot on a map, so far. Same ink the sprite is painted
+ * with, so the dot and the person are obviously the same person.
+ */
+export const capColour = (id) => PALETTE[PLAYER_INKS[slot(id, PLAYER_INKS.length)]];
