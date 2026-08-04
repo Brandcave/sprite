@@ -1,30 +1,39 @@
 /*
-  The bar in the corner, and whatever the selected tool wants above it.
+  The bar in the corner. Selecting a tool does not open something above it — the
+  bar becomes that tool, in place, growing out of the buttons you pressed.
 
-  A tool is a small object rather than a subclass — an icon, a panel, and a say
-  in whether it belongs on screen at all:
+  A tool is a small object rather than a subclass — an icon, the content it puts
+  in the bar, and a say in whether it belongs on screen at all:
 
     {
       id, title, icon,            // icon is an inline <svg>
-      panel,                      // shown while this tool is the selected one
-      ambient,                    // shown whenever the tool is available (optional)
+      panel,                      // goes into the bar while this tool is chosen
+      ambient,                    // sits above the bar whenever available (optional)
       available(),                // false hides its button entirely
-      onOpen(), onClose(),        // selected, and deselected
+      onOpen(), onClose(),        // chosen, and let go of
       typing(),                   // true while it wants the keyboard (optional)
     }
 
-  Selecting a button swaps the panel; selecting the selected one puts it away.
-  That is the whole contract, and it is deliberately small: the next tool should
-  be a file that knows about its own job and nothing about this one.
+  Selecting swaps what the bar holds; selecting the chosen one puts it away and
+  the bar shrinks back to its buttons. The contract is deliberately small: the
+  next tool should be a file that knows about its own job and nothing about this
+  one.
 
-  Two kinds of content, because they answer different questions. A panel is what
-  you are doing — only one at a time, and only while you have chosen it. Ambient
-  is what is happening whether or not you asked: chat arriving is the case that
-  forced the distinction, since messages have to be readable while you are
-  holding a shovel.
+  The buttons stay put the whole time, which is the point of doing it in place.
+  You can go from typing a message to holding a shovel without shutting anything
+  first, and the bar never moves under the cursor on the way.
+
+  One thing does sit above it. A panel is what you are *doing* — one at a time,
+  and only while you have chosen it — but ambient content is what is happening
+  whether you asked or not. Chat forced the distinction: messages have to stay
+  readable while you are busy with something else, so the stream is ambient and
+  only the field is a panel.
 */
 
 const BOUNCE = 420;
+const PAD = 6;                // the bar's own padding
+const BTN = 34;               // a button, square
+const GAP = 4;                // between buttons
 
 const CSS = `
 .tb-root {
@@ -47,21 +56,29 @@ const CSS = `
   color: #eaf2ff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
-.tb-ambient, .tb-panel { align-self: stretch; }
-.tb-panel[hidden], .tb-ambient[hidden] { display: none; }
+.tb-ambient { align-self: stretch; }
+.tb-ambient[hidden] { display: none; }
 
-/* the panel springs out of the bar it was opened from */
-.tb-panel.tb-boing { animation: tb-boing ${BOUNCE}ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+/*
+  The width is set from JavaScript at both ends — the buttons' own width when
+  shut, and the full column when open. A width cannot animate to or from auto,
+  and this is the animation the whole thing is built around.
+*/
+.tb-bar {
+  display: flex; align-items: center; gap: ${GAP}px;
+  padding: ${PAD}px; overflow: hidden; pointer-events: auto;
+  transition: width ${BOUNCE}ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.tb-bar.tb-boing { animation: tb-boing ${BOUNCE}ms cubic-bezier(0.34, 1.56, 0.64, 1); }
 @keyframes tb-boing {
-  0% { opacity: 0; transform: scale(0.88) translateY(6px); }
-  55% { transform: scale(1.03); }
-  100% { opacity: 1; transform: none; }
+  0% { transform: scale(0.9); }
+  55% { transform: scale(1.04); }
+  100% { transform: scale(1); }
 }
 
-.tb-bar { display: flex; align-items: center; gap: 4px; padding: 6px; pointer-events: auto; }
 .tb-btn {
-  display: grid; place-items: center;
-  width: 34px; height: 34px; padding: 0;
+  flex: none; display: grid; place-items: center;
+  width: ${BTN}px; height: ${BTN}px; padding: 0;
   background: none; border: 0; border-radius: 9px;
   color: #ffd47a; cursor: pointer;
   transition: background 120ms ease, color 120ms ease;
@@ -70,6 +87,11 @@ const CSS = `
 .tb-btn:hover { background: rgba(255, 255, 255, 0.09); }
 .tb-btn[aria-pressed="true"] { background: rgba(255, 212, 122, 0.16); color: #ffe6ab; }
 .tb-btn[hidden] { display: none; }
+
+/* whatever the chosen tool put in the bar */
+.tb-slot { flex: 1; min-width: 0; display: flex; align-items: center; }
+.tb-slot:empty { display: none; }
+.tb-slot > * { flex: 1; min-width: 0; }
 
 /*
   A phone keeps its bar at the top, out from under the thumbs and the keyboard,
@@ -97,17 +119,16 @@ export class Toolbar {
     const ambient = document.createElement('div');
     ambient.className = 'tb-ambient';
 
-    const panel = document.createElement('div');
-    panel.className = 'tb-panel';
-    panel.hidden = true;
-
     const bar = document.createElement('div');
     bar.className = 'tb-bar tb-pane';
 
-    root.append(ambient, panel, bar);
+    const slot = document.createElement('div');
+    slot.className = 'tb-slot';
+
+    root.append(ambient, bar);
     parent.append(root);
 
-    this.el = { root, ambient, panel, bar };
+    this.el = { root, ambient, bar, slot };
     this.tools = tools;
     this.active = null;
     this.buttons = new Map();
@@ -128,11 +149,22 @@ export class Toolbar {
       bar.append(btn);
       this.buttons.set(tool, btn);
     }
+
+    bar.append(slot);
+    this.resize();
   }
 
   /** Whether anything here wants the keyboard, so the game leaves the keys be. */
   get typing() {
     return this.tools.some((t) => t.typing?.());
+  }
+
+  /** As wide as its buttons when shut, and the whole column when open. */
+  resize() {
+    const showing = [...this.buttons.values()].filter((b) => !b.hidden).length;
+    this.el.bar.style.width = this.active
+      ? '100%'
+      : `${PAD * 2 + showing * BTN + Math.max(0, showing - 1) * GAP}px`;
   }
 
   select(tool) {
@@ -145,33 +177,34 @@ export class Toolbar {
       leaving.panel.remove();
       leaving.onClose?.();
     }
+    if (tool) {
+      this.buttons.get(tool).setAttribute('aria-pressed', 'true');
+      this.el.slot.append(tool.panel);
+    }
 
-    const { panel } = this.el;
-    panel.hidden = !tool;
-    if (!tool) return;
-
-    this.buttons.get(tool).setAttribute('aria-pressed', 'true');
-    panel.append(tool.panel);
-    panel.classList.remove('tb-boing');
-    void panel.offsetWidth;               // let the animation run again
-    panel.classList.add('tb-boing');
-    tool.onOpen?.();
+    this.resize();
+    this.el.bar.classList.remove('tb-boing');
+    void this.el.bar.offsetWidth;          // let the animation run again
+    this.el.bar.classList.add('tb-boing');
+    tool?.onOpen?.();
   }
 
   /**
    * Called every frame. A tool that has stopped being relevant loses its button
-   * — and its panel, if it was the one open — and a bar with nothing left on it
-   * is not a bar, so the whole thing goes.
+   * — and the bar, if it was the one holding it — and a bar with nothing left on
+   * it is not a bar, so the whole thing goes.
    */
   update() {
     let any = false;
     for (const tool of this.tools) {
       const ok = tool.available ? tool.available() : true;
-      this.buttons.get(tool).hidden = !ok;
+      const btn = this.buttons.get(tool);
+      if (btn.hidden === ok) btn.hidden = !ok;
       if (tool.ambient) tool.ambient.hidden = !ok;
       if (!ok && this.active === tool) this.select(null);
       any = any || ok;
     }
     this.el.root.hidden = !any;
+    if (!this.active) this.resize();
   }
 }

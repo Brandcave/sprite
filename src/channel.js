@@ -82,8 +82,8 @@ const CSS = `
 }
 .ch-bubble[data-private] .ch-who { color: #9fd0ff; }
 
-.ch-entry { display: flex; align-items: center; gap: 9px; padding: 9px 12px; pointer-events: auto; }
-.ch-prompt { color: #ffd47a; }
+.ch-entry { display: flex; align-items: center; gap: 8px; padding: 0 6px 0 2px; pointer-events: auto; }
+.ch-prompt { color: #ffd47a; opacity: 0.8; }
 
 .ch-field {
   flex: 1; min-width: 0; padding: 0;
@@ -133,7 +133,7 @@ export class Channel {
     stream.className = 'ch-stream';
 
     const entry = document.createElement('div');
-    entry.className = 'ch-entry tb-pane';
+    entry.className = 'ch-entry';
     entry.innerHTML = `
       <span class="ch-prompt">›</span>
       <input class="ch-field" type="text" maxlength="${MAX_TEXT}"
