@@ -53,6 +53,11 @@ const CATALOGUE = {
     art: ITEMS.flower,
     stacks: false,
   },
+  chocolate: {
+    name: 'Chocolate',
+    note: 'Came off a boat, in foil, and Bram swears he never touched it.',
+    art: ITEMS.chocolate,
+  },
 };
 
 /** What that id is, or null — an id nothing knows about is not a crash. */

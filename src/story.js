@@ -4,7 +4,9 @@ import { DIRS, tileOccupied } from './character.js';
 import { inBounds, isBlocked } from './place.js';
 import { sim } from './sim.js';
 import { dayAt, DAY_LENGTH } from './weather.js';
-import { AMY_HOUSE, AMY_FOUNTAIN, amyDate } from './dialogue-scripts.js';
+import {
+  AMY_HOUSE, AMY_FOUNTAIN, amyDate, amyWants, DATE_NEEDS, ANOKA_LAST,
+} from './dialogue-scripts.js';
 import { blanket, tableSetting } from './setting.js';
 
 /*
@@ -208,9 +210,23 @@ export class Story {
   /**
    * @param rooms the two interiors, so the indoor beats can be written as room
    *              coordinates rather than as the raw tiles they happen to land on
+   * @param cast  the two people the last scene needs who are not Amy — the
+   *              villager who walks up at the end of it, and whoever she is
+   *              walking up to — and the bag, which the dates ask questions of.
+   *              Handed in rather than reached for, because all three already
+   *              exist by the time this is built and a story that has to go
+   *              looking for its cast is a story that can fail to find it.
+   *
+   *              `bag` is used through two methods, has() and remove(), and
+   *              nothing here should ever want a third. With no bag at all every
+   *              date simply opens, which is the right way for this to degrade:
+   *              a missing inventory should not make the story unfinishable.
    */
-  constructor(scene, rooms) {
+  constructor(scene, rooms, { anoka = null, player = null, bag = null } = {}) {
     this.spots = spotsFor(rooms);
+    this.anoka = anoka;
+    this.player = player;
+    this.bag = bag;
 
     // Always from the top. Nothing is remembered between page loads.
     this.stage = 'house';
@@ -272,11 +288,18 @@ export class Story {
 
     /** The scene being played out, if any: nobody may walk while this is set. */
     this.scene = null;
+    /** An epilogue owed but not yet playable — see epilogue(). */
+    this.pending = false;
 
     /** Fired by a `cue` in her script. Set by whoever owns the sky. */
     this.onFireworks = null;
     /** ...and by whoever can tell the rest of the world what hour it is. */
     this.onNightfall = null;
+    /**
+     * Open the text box on somebody's behalf, for a conversation the player did
+     * not start. Set by whoever owns the box: `(who, script, done) => {}`.
+     */
+    this.onSay = null;
   }
 
   /** Nothing the player does reaches the world while a scene is running. */
@@ -319,8 +342,45 @@ export class Story {
       const next = this.spots[ending] ? ending : 'stars';
       this.leave(() => this.moveTo(next));
     } else {
+      /*
+        A date. Or the conversation where she sends you back for what she asked
+        for, and those two are told apart by asking the bag rather than by
+        reading which script just ran — because the bag is the thing that decided
+        which script it was, and it cannot have changed in between. Talking to
+        somebody has never yet put bread in anybody's hands.
+
+        Turned away, nothing happened: she stays where she is, the stage does not
+        move, and coming back is simply having the conversation again.
+      */
+      if (!this.ready(this.stage)) return;
+      this.spend(this.stage);
       this.leave(() => this.finish());
     }
+  }
+
+  /**
+   * Whether you are carrying what this beat asked you to bring.
+   *
+   * A beat with nothing on its list is always ready, which is every beat that is
+   * not a date — the house and the fountain are places she asked you to come to,
+   * not things she asked you to prepare for.
+   */
+  ready(stage) {
+    const needs = DATE_NEEDS[stage];
+    if (!needs || !this.bag) return true;
+    return needs.every((id) => this.bag.has(id));
+  }
+
+  /**
+   * ...and what the evening costs, once it has happened.
+   *
+   * Spent at the end of the conversation rather than at the start of it, so
+   * walking away halfway through leaves you holding everything — the same
+   * reading as done() takes of walking away, and for the same reason. Nothing
+   * you did not finish should have taken anything from you.
+   */
+  spend(stage) {
+    for (const id of DATE_NEEDS[stage] ?? []) this.bag?.remove(id);
   }
 
   /**
@@ -354,8 +414,17 @@ export class Story {
 
   /** Drives whatever scene is running. Called every frame; usually does nothing. */
   update(dt) {
+    // The last scene is owed the moment she is gone, but it cannot always be
+    // played then — see epilogue(). So it is asked for on every frame until it
+    // takes, which costs one comparison and saves a great deal of bookkeeping
+    // about doors.
+    if (this.pending && !this.scene) this.epilogue();
+
     const s = this.scene;
-    if (!s || s.phase === 'walk') return;
+    // 'walk' and 'talk' are both driven from elsewhere — by the route she is
+    // following, and by the box she is speaking into — so there is nothing for
+    // a clock to do about either of them.
+    if (!s || s.phase === 'walk' || s.phase === 'talk') return;
 
     s.t += dt;
     if (s.phase === 'fade') {
@@ -388,7 +457,16 @@ export class Story {
     this.amy.homeZ = spot.z;
     this.amy.placeAt(spot.x, spot.z);
     this.amy.face(spot.facing, 0);
-    this.amy.script = spot.script;
+    /*
+      A date carries a function rather than a script, so what she says is decided
+      at the moment you press Z rather than when she sat down — see scriptOf() in
+      npc.js, which exists for exactly this. It has to be that late: the whole
+      point is that you can walk away, find the bread, and come back to a
+      different conversation without anything having to notice that you did.
+    */
+    this.amy.script = DATE_NEEDS[stage]
+      ? () => (this.ready(stage) ? spot.script : amyWants(stage))
+      : spot.script;
     this.show();
   }
 
@@ -400,6 +478,60 @@ export class Story {
     // engine rather than by her.
     this.layOut(null);
     this.vanish();
+    // ...and the player does not get to walk off yet. update() picks this up.
+    this.pending = true;
+  }
+
+  /**
+   * The last scene, which is not hers.
+   *
+   * Amy has said her line and gone, and before control comes back Anoka crosses
+   * the ground to him and tells him what that line actually costs. She is not
+   * summoned and she does not appear: she walks, from wherever her schedule had
+   * her standing, which is why it can be a long walk and why that is right. The
+   * player holds still for it exactly as he holds still for Amy leaving.
+   *
+   * Two things make this safe to do to a villager who is otherwise a pure
+   * function of the shared clock:
+   *
+   * - Her home is not touched. follow() suspends the schedule for the length of
+   *   a route and hands her straight back to it afterwards, so when the box
+   *   closes she is a villager again, standing somewhere unusual, walking back
+   *   towards the pond of her own accord. Nothing has to remember to send her.
+   *   Other people's copies of her never left the pond and reconverge on it —
+   *   the drift washes out, which is the property npc.js is built around.
+   *
+   * - It waits for open ground. After the dinner date he is indoors, and a room
+   *   is three hundred tiles from her lawn with no route between them: she would
+   *   set off, fail to find a single walkable step, and deliver the speech of
+   *   her life from another postcode. So the scene is owed rather than played,
+   *   and it happens on the step outside — which is a better staging of it than
+   *   the one I would have written on purpose.
+   */
+  epilogue() {
+    const her = this.anoka;
+    // Nobody to say it, nowhere to say it, or she is not in the place we are
+    // standing in. The first two mean this island was built without an epilogue
+    // and should simply not have one; the last means "not yet".
+    if (!her || !this.player || !this.onSay) return void (this.pending = false);
+    if (!inBounds(her.tileX, her.tileZ)) return;
+
+    this.pending = false;
+    this.scene = { phase: 'walk', t: 0 };
+    /*
+      His own tile, which she can never reach — he is standing on it, and
+      routeTo() treats whoever is in the way as solid. So the search runs out at
+      the nearest tile it *can* reach, which is the one beside him. That is not a
+      fallback being tolerated: it is how you ask for "come and stand next to
+      him" without having to pick which of the four sides is free.
+    */
+    her.follow(routeTo(her, { x: this.player.tileX, z: this.player.tileZ }), () => {
+      this.scene = { phase: 'talk', t: 0 };
+      // `talking` is what keeps her head turned to him for the length of it —
+      // see npc.update() — as well as what keeps her schedule from walking her
+      // off mid-sentence.
+      this.onSay(her, ANOKA_LAST, () => { this.scene = null; });
+    });
   }
 
   /** Back on her feet and fully opaque, wherever she has just been put. */
@@ -445,6 +577,7 @@ export class Story {
   /** For the console: put her back at the beginning. */
   reset() {
     this.scene = null;
+    this.pending = false;
     this.amy.route = null;
     this.moveTo('house');
   }

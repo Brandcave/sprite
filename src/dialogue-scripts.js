@@ -380,6 +380,60 @@ export const ANOKA = {
 };
 
 /*
+  The one conversation on this island you do not walk up to and start. Amy has
+  said her last line and gone, and before the game hands control back Anoka
+  crosses the ground to him — see epilogue() in story.js for the staging.
+
+  It is hers to say and nobody else's. Tula would be kind about it and Bram
+  would be sentimental; Anoka is the one who hears "come and find me when you
+  are a complete man" as a job of work rather than a goodbye, and she has been
+  saying so in miniature since the first conversation. This is that, to his face,
+  with the boat still in sight.
+
+  The question at the end has one answer, which is the point of asking it. She is
+  not offering him a choice — she is making him say it out loud, because a thing
+  you have said out loud to somebody is harder to put down afterwards. A menu
+  with one item in it looks like a menu right up until you read it, and then it
+  is a man agreeing to something.
+*/
+export const ANOKA_LAST = {
+  name: 'Anoka',
+  start: 'over',
+  nodes: {
+    // Her only weather line here, and it earns it the way all of hers do: she is
+    // the woman who is outdoors in it, so what the sky is doing is the first
+    // thing she says about anything.
+    over: {
+      text: {
+        any: 'I came over. You have the face of a man who has just been handed something and cannot yet tell what it weighs.',
+        rain: 'I came over, and I am not going to stand here in the wet being tactful. You have that look about you.',
+        storm: 'I came over before this gets any worse. You can stand about in it afterwards if you must.',
+      },
+      next: 'begin',
+    },
+    begin: {
+      text: 'You think that was the end of something. It was not. That was the start of it, and you are stood on the line.',
+      next: 'whole',
+    },
+    whole: {
+      text: 'She asked you to come back whole. Nobody is handed whole. It gets built, by hand, and mostly on the days you would rather not.',
+      next: 'work',
+    },
+    work: {
+      text: 'That is the whole of it, and it is not a pretty thing to be told. It is work. It will be work for a long while yet.',
+      next: 'ask',
+    },
+    ask: {
+      text: 'So I will ask you plainly, and I would like it answered the same way. Are you up for it?',
+      choices: [{ label: 'Yes', next: 'yes' }],
+    },
+    yes: {
+      text: 'Good. Then go and start. Not tomorrow — a man who starts tomorrow starts tomorrow every day of his life.',
+    },
+  },
+};
+
+/*
   Tula, on the plaza bench, with the whole village walking past her all day.
 
   Where Anoka reasons, Tula simply *saw* — she is the eyewitness, and the pleasure
@@ -1156,6 +1210,47 @@ export const AMY_FOUNTAIN = {
     more: {
       name: 'You',
       text: 'I would like to know you more. I am enamoured by you. Whatever this is — I want more of it.',
+      next: 'intent',
+    },
+    /*
+      She makes him name it before she says one word about her own feelings, and
+      that order is the whole of the scene. "I want more of it" is a lovely
+      sentence that commits to nothing, and she has heard it before — see `tried`
+      below, which is her saying so.
+
+      No weather table on any of these four. The rest of this script is thick
+      with them because she keeps glancing at the sky and the hour; here she is
+      looking at him, and a woman asking a man what he actually wants does not
+      break off to remark on the rain.
+
+      All three doors lead to `tried`. What he says changes what she says back
+      and nothing else — she was always going to warn him that it takes somebody
+      particular, and an answer that skipped the warning would be her rewarding
+      him for a good guess.
+    */
+    intent: {
+      text: 'More of it. All right — then say what you mean by it. I have been guessed at before, and I did not care for it.',
+      choices: [
+        { label: 'I do not know', next: 'unsure' },
+        { label: 'I want to date you', next: 'court' },
+        { label: 'I want to marry you', next: 'marry' },
+      ],
+    },
+    // Honest, and she takes it as honest rather than as a failure. There is no
+    // wrong answer here and this is the one that most needs to feel like it.
+    unsure: {
+      text: 'You do not know. Good — that is the true one, and I would rather have it than something polished. We shall find out together.',
+      next: 'tried',
+    },
+    court: {
+      text: 'To be courted, then. In daylight, where the whole village can watch you doing it. I will not pretend I would not like that.',
+      next: 'tried',
+    },
+    // She neither laughs at it nor accepts it. Believing that he meant it, and
+    // saying plainly that meaning it is not the same as knowing her, is the only
+    // answer that respects him and the question both.
+    marry: {
+      text: 'Straight to the end of it. You do not know me nearly well enough to mean that — and I think you meant it anyway, which is not nothing.',
       next: 'tried',
     },
     tried: {
@@ -1182,24 +1277,47 @@ export const AMY_FOUNTAIN = {
         any: 'Then take me somewhere. Somewhere you have thought about. Where are we going?',
       },
       choices: [
-        { label: 'Dinner, indoors', next: 'dinner' },
-        { label: 'Picnic at the lagoon', next: 'picnic' },
-        { label: 'Stars, on the beach', next: 'stars' },
+        { label: 'Dinner, indoors', next: 'dinnerPlace' },
+        { label: 'Picnic at the lagoon', next: 'picnicPlace' },
+        { label: 'Stars, on the beach', next: 'starsPlace' },
       ],
     },
-    dinner: {
+    /*
+      Each choice is two nodes: where she will be, and then what she wants you to
+      turn up holding. Split rather than run together because the second half has
+      a job the first does not — see DATE_NEEDS below, and the gate in story.js
+      that will hold you to it.
+
+      The order of the pair is not arbitrary either. The place is the answer to
+      the question she asked; the list is the thing she adds once the answer is
+      settled, which is how people actually ask for something.
+
+      And the *names* matter: story.js reads the node a script came to rest on to
+      decide where she goes next, so the last node of each branch has to keep the
+      spot's name. That is why the request is the terminal node and the place is
+      the one that got renamed.
+    */
+    dinnerPlace: {
       text: {
         any: 'The house with the long table, then. I will be there before you are — I am always early, it is a terrible habit.',
         rain: 'The house with the long table, then. Somewhere with a roof on it — you have talked me into being sensible for once.',
         storm: 'The house with the long table, then. And thank you for picking the one with walls; I would not have.',
       },
+      next: 'dinner',
     },
-    picnic: {
+    dinner: {
+      text: 'And bring me a flower. One, off the beds by the fountain — not a bunch. One that you stopped and chose.',
+    },
+    picnicPlace: {
       text: {
         any: 'The lagoon, then. Bring something to eat, and please do not go to any trouble over it.',
         rain: 'The lagoon, then, rain and all. Bring something to eat, and please do not go to any trouble over it.',
         storm: 'The lagoon, then — and if this is still doing that when you get there, we shall eat under a tree and call it an adventure.',
       },
+      next: 'picnic',
+    },
+    picnic: {
+      text: 'Bread, and something ripe off one of the trees. That is the whole list, and I will notice if your hands are empty.',
     },
     /*
       The one line in this file that reaches out of the box and changes the
@@ -1208,17 +1326,108 @@ export const AMY_FOUNTAIN = {
       It is cued here rather than arranged in code because it is part of what she
       said, and a line that turns out to have been a promise should be able to
       keep it from where it was spoken.
+
+      The cue stays on the place rather than moving to the request, so the sun is
+      already going down behind her while she is still telling you what to bring.
     */
-    stars: {
+    starsPlace: {
       text: {
         any: 'Then let it get dark. The top of the road, where it runs out into the sand — I will be waiting at the end of it.',
         rain: 'Then let it get dark, and let this pass over — it always does. The top of the road, where it runs out into the sand.',
         storm: 'Then let it get dark, and let this blow itself out. It always does. The top of the road, at the end of the sand.',
       },
       cue: 'nightfall',
+      next: 'stars',
+    },
+    stars: {
+      text: 'And bring chocolate. If I am to lie on cold sand half the night, I would like chocolate. That part is not negotiable.',
     },
   },
 };
+
+/*
+  What each date asks you to turn up holding.
+
+  This lives here, beside the prose, and not in story.js where it is enforced —
+  because it is written twice in words and once in code, and the two places it is
+  written in words are both in this file: the request at the end of AMY_FOUNTAIN,
+  and the reminder in AMY_EMPTY below. A list that drifted out of step with her
+  own lines is the only way this can really go wrong, and keeping all three
+  within a screen of each other is what makes that unlikely.
+
+  Keyed by spot, which is also the node name, which is also the place id — see
+  amyDate() at the bottom of this file for the other three jobs that one word is
+  already doing.
+
+  Everything on these lists is findable on the island: the flower in the beds by
+  the fountain, the bread on the step of the house with the long table, the fruit
+  under the trees on the east lawn, the chocolate along the south beach. See the
+  pickups in main.js — if you add a requirement, add somewhere to get it, or you
+  have written a date that cannot happen.
+*/
+export const DATE_NEEDS = {
+  dinner: ['flower'],
+  picnic: ['bread', 'fruit'],
+  stars: ['chocolate'],
+};
+
+/*
+  Turning up with nothing.
+
+  She is pleased to see him and she is not letting it go, and the whole of the
+  scene is that those two things are not in tension. She is not sulking, she is
+  not scoring a point, and she does not withdraw the invitation — she says what
+  she wants, says why it is not about the food, and tells him she will be right
+  here. The date is still on. It just has not started.
+
+  It has to be her rather than the game. A grey line reading "you need bread and
+  fruit" would do the same mechanical job and would be a different story: it
+  would make her a lock and the items a key. So it is her voice, she gives the
+  reason, and the reason is about being listened to.
+
+  Three ways in, like AMY_DATE — the entry node is the one that knows which items
+  she asked for, and everything after it is the same in all three places, because
+  from the second line on it is the same objection wherever she is standing.
+*/
+export const AMY_EMPTY = {
+  name: 'Amy',
+  start: 'picnic',
+  nodes: {
+    dinner: {
+      text: 'You came, and I am glad you did — and your hands are empty. I asked you for a flower. One flower.',
+      next: 'notFood',
+    },
+    picnic: {
+      text: 'You came all the way down here, and I am glad of it — and you have come with nothing. Bread, I said. And something ripe.',
+      next: 'notFood',
+    },
+    stars: {
+      text: 'You walked all the way up the road in the dark, and I am glad you did — and you have come with nothing. I asked for chocolate.',
+      next: 'notFood',
+    },
+    notFood: {
+      text: 'And before you apologise for it — it is not the food. I could eat or not eat this evening and think nothing of it either way.',
+      next: 'heard',
+    },
+    heard: {
+      text: 'It is that I asked you for something small, and you heard me ask, and here you are without it. That is the part I mind.',
+      next: 'worth',
+    },
+    // The line the whole scene exists for. She names what she is doing while she
+    // does it, which is the difference between a woman being difficult and a
+    // woman who has decided she is allowed to ask for things.
+    worth: {
+      text: 'So I am going to be a little difficult about it. I do not enjoy being difficult. I am doing it because I am worth the asking.',
+      next: 'go',
+    },
+    go: {
+      text: 'Go on and fetch it. I am not cross and I am not going anywhere — come back holding it and we shall start this properly.',
+    },
+  },
+};
+
+/** The refusal, entered by the same door as the date it is standing in for. */
+export const amyWants = (spot) => ({ ...AMY_EMPTY, start: spot });
 
 /*
   The one that matters — and from `never` onwards it is the same wherever she is

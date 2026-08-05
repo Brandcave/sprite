@@ -1535,6 +1535,10 @@ export const VILLAGERS = {
   there are always shells when the tide goes out, and the bread and the fruit
   are the picnic, named in Amy's own line about it. Nothing here is inventory
   filler invented to have something to pick up.
+
+  The chocolate is the one thing here that did not grow on this island and could
+  not have, which is the point of it: Amy asks for it by name, and the only way
+  it is on a beach in the middle of an ocean is that something carried it there.
 */
 export const ITEMS = {
   // A round loaf with a slashed crust — the crust lines are the only thing that
@@ -1634,6 +1638,33 @@ export const ITEMS = {
     '....kdGk........',
     '.....kGk........',
     '......kk........',
+    '................',
+  ],
+  /*
+    A bar, half out of its foil. Four squares and a silver sleeve, and the
+    squares are the whole of it — a plain brown rectangle at three pixels tall is
+    a plank, and the grooves are what make it a thing you break a piece off.
+
+    The foil is the lamp silver rather than a white, because white at this size
+    goes to paper and paper goes to bread. It is the one item on the island with
+    a manufactured edge on it, and it should look it.
+  */
+  chocolate: [
+    '................',
+    '................',
+    '................',
+    '...kkkkkkkkkkk..',
+    '...knnnnknnnnk..',
+    '...kzzzzkzzzzk..',
+    '...kkkkkkkkkkk..',
+    '...knnnnknnnnk..',
+    '...kzzzzkzzzzk..',
+    '...kkkkkkkkkkk..',
+    '...kVVVVVVVVVk..',
+    '...kQQQQQQQQQk..',
+    '...kQQQQQQQQQk..',
+    '...kkkkkkkkkkk..',
+    '................',
     '................',
   ],
 };

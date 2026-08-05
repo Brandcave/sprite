@@ -203,11 +203,18 @@ const player = new Player(scene, spawn[0], spawn[1], net.id);
 // exist until after this list. Asked at the moment you press Z, so the answer is
 // always the current one and nothing has to go round the cast when it changes.
 // See villager() in dialogue-scripts.js for the four chapters.
+//
+// Anoka is held in a name of her own as well as in the list, because the story
+// has one more use for her than the other two: she is the one who walks up at
+// the end of it. Lifted out, not moved — she is still first, and the list is
+// still the schedule's order.
+const anoka = new Npc(scene, 34, 28, {
+  index: 0, roam: 3, sprites: VILLAGERS.straw,
+  script: () => villager(ANOKA, story.chapter),
+});
+
 const npcs = [
-  new Npc(scene, 34, 28, {
-    index: 0, roam: 3, sprites: VILLAGERS.straw,
-    script: () => villager(ANOKA, story.chapter),
-  }),
+  anoka,
   new Npc(scene, 26, 20, {
     index: 1, roam: 2, sprites: VILLAGERS.weaver,
     script: () => villager(TULA, story.chapter),
@@ -233,13 +240,25 @@ const HOUSES = [
 const houseAt = (x, z) => HOUSES.find((r) => r.door.x === x && r.door.z === z);
 
 /*
+  The bag, built up here rather than down with the rest of the panels, because
+  the story asks it questions — she wants you to arrive holding something — and
+  it has to exist before she does. It is otherwise a tool like any other and is
+  handed to the toolbar with the rest of them, further down.
+*/
+const inventory = new Inventory();
+
+/*
   Amy, and the one thread of this world that runs in an order rather than on the
   clock. She joins the villagers rather than being kept apart from them: she
   wants the same self-lit floor after dark, the same dot on the map, the same
   everything — the only thing about her that is not a villager is that talking to
   her changes where she is, and that lives in story.js.
 */
-const story = new Story(scene, { parlour: HOUSES[0], dining: HOUSES[1] });
+const story = new Story(
+  scene,
+  { parlour: HOUSES[0], dining: HOUSES[1] },
+  { anoka, player, bag: inventory },
+);
 npcs.push(story.amy);
 
 // The sky going to pieces, when a script says it does. Yours alone and not on
@@ -313,10 +332,10 @@ const dialogue = new Dialogue(document.body, TOUCH
   : {});
 const chat = new Chat({ net, dialogue });
 const channel = new Channel({ net, hasCompany: () => net.online && remotes.size > 0 });
-const inventory = new Inventory();
 // The bag first, because it is the one that is always there — the chat's button
 // comes and goes with the company, and a bar whose buttons reorder underneath
-// you is a bar you have to look at every time.
+// you is a bar you have to look at every time. (It is built further up, where
+// the story can be given it.)
 const toolbar = new Toolbar([inventory, channel]);
 
 /*
@@ -340,6 +359,24 @@ const pickups = [
   new Pickup(scene, 'shell', { x: 23, z: 46 }),
   // The east column of the flower bed west of the fountain.
   new Pickup(scene, 'flower', { x: 20, z: 24 }),
+  /*
+    ...and the three Amy sends you for. Every one of them has to be somewhere,
+    or she has asked for something that does not exist and the date she asked for
+    it before can never happen — see DATE_NEEDS in dialogue-scripts.js.
+
+    Placed where the thing itself would be rather than where it would be
+    convenient. A loaf is outside the house it came out of, cooling; fruit is
+    under a tree, because that is where fruit ends up; and the chocolate is along
+    the tideline, which is the only way a bar of it gets to an island like this.
+  */
+  // On the path in front of the house with the long table, a tile off the step —
+  // set out to cool, which is the one reason there is bread on a road.
+  new Pickup(scene, 'bread', { x: 37, z: 19 }),
+  // On the grass between the pair of trees on the north-east lawn.
+  new Pickup(scene, 'fruit', { x: 41, z: 11 }),
+  // South beach again, well east of Bram's four tiles so he is not walking round
+  // it all day — and close enough to him that its note is obviously about him.
+  new Pickup(scene, 'chocolate', { x: 34, z: 47 }),
 ];
 
 /*
@@ -374,6 +411,23 @@ dialogue.onCue = (cue) => story.cue(cue);
   must not happen is a conversation stopping halfway because your hands are full.
 */
 dialogue.onGive = (id) => inventory.add(id);
+/*
+  ...and the other direction: the box, opened by somebody who is not you.
+
+  Every conversation in this game starts because you pressed Z at a person — see
+  interact(), which does these same three things in the same order. The last one
+  starts because Anoka walked over to you instead, and the only thing that
+  differs is who decided. So it is the same box, the same name plate, the same
+  `talking` flag. The story hands over a script and is told when it closes, and
+  needs to know nothing else about the furniture.
+*/
+story.onSay = (who, script, done) => {
+  who.talking = true;
+  dialogue.start(script, () => {
+    who.talking = false;
+    done();
+  });
+};
 
 /* ----------------------------------------------------------------- players */
 // Everyone else in the room. They are told to us one step at a time and nothing
