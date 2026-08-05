@@ -376,10 +376,19 @@ export const PALM_VOLUME = {
     const lz = Math.sin(leanA) * V.lean;
     const trunkAt = (t) => [CX + lx * t * t, V.trunkH * t, CZ + lz * t * t];
 
+    // Root flare. The taper alone used to hand the bottom cell a radius wide
+    // enough for one extra ring of cells, so the trunk sprouted a single-voxel
+    // star at ground level and snapped back to its normal width immediately
+    // above — it read as a broken join, not a base. Instead the core stays a
+    // constant width and the flare is its own term, falling off over a couple
+    // of cells so the trunk widens into the sand across three steps.
+    const flareH = Math.min(2.6, V.trunkH * 0.35);   // short palms get less of it
+
     for (let y = 0; y <= V.trunkH; y++) {
       const t = y / V.trunkH;
       const [tx, , tz] = trunkAt(t);
-      const r = 2.0 - 0.9 * t;                       // tapers toward the crown
+      const r = 1.78 - 0.66 * t                      // tapers toward the crown
+        + 0.62 * Math.max(0, 1 - y / flareH);        // ...and swells at the foot
       for (let dx = -3; dx <= 3; dx++) {
         for (let dz = -3; dz <= 3; dz++) {
           if (dx * dx + dz * dz > r * r) continue;
