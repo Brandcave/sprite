@@ -48,6 +48,29 @@
 
 const WRAP = 34;              // characters per line
 const LINES = 2;              // lines visible at once
+/*
+  Horizontal padding, in characters rather than pixels — and that unit is the
+  whole point of it.
+
+  The box holds text that has already been wrapped to exactly WRAP characters, so
+  its width is written in `ch` and moves with the type as the window narrows. The
+  padding used to be 18px and did not. It was fixed while the thing it was
+  padding was elastic, so the slack between the last character and the frame was
+  whatever was left over after the padding took its cut — and the smaller the
+  type got, the bigger a bite that fixed 18px each side took out of it. Measured:
+  the left gap sat at 21px at every size, while the right fell from 25px on a
+  wide window to 10px on a narrow one. Text nearly touching the frame on one side
+  and comfortable on the other reads as a padding bug, and it is one, but the
+  padding was never the asymmetric part. The units were.
+
+  So the panel is now a whole number of characters wide — WRAP for the text and
+  PAD either side of it — plus the six pixels of hard outline, which is the only
+  part of it that has any business being fixed. Both gaps are the same fraction
+  of a character at every size the type can be.
+*/
+const PAD = 1.5;              // ch, each side. 17px at the largest type, as before
+const FRAME = 3;              // px — the hard outline, the one fixed part
+const NAME_EM = 0.78;         // the name plate's type, against the box's
 const CHAR_MS = 17;           // typewriter speed
 const MAX_TEXT = 120;         // as much as anybody needs to say at once
 const CONFIRM = new Set(['Enter', 'Space', 'KeyZ', 'KeyE']);
@@ -75,12 +98,27 @@ const CSS = `
               0 5px 0 rgba(8, 12, 24, 0.45);
 }
 
-.dlg-box { position: relative; width: ${WRAP + 4}ch; max-width: 100%; padding: 16px 18px 18px; }
+.dlg-box {
+  position: relative;
+  box-sizing: border-box;               /* the width below counts the frame in */
+  width: calc(${WRAP + PAD * 2}ch + ${FRAME * 2}px); max-width: 100%;
+  padding: 16px ${PAD}ch 18px;
+}
 .dlg-line { white-space: pre; min-height: 1.5em; }
+/*
+  The plate hangs four pixels left of the text it labels, at every size, which is
+  what the old fixed 14px against a fixed 18px padding was doing.
+
+  The divide is not decoration. A ch is the width of a zero *in the element's own
+  font*, and this element sets its own smaller one — so 1.5ch here is not the
+  1.5ch the box padding is, and writing it plainly would put the plate a good
+  four pixels further out than intended. Dividing by the plate's own em factor
+  converts the box's characters into the plate's.
+*/
 .dlg-name {
-  position: absolute; top: -0.95em; left: 14px;
+  position: absolute; top: -0.95em; left: calc(${(PAD / NAME_EM).toFixed(3)}ch - 4px);
   padding: 1px 10px 2px; border-radius: 6px;
-  font-size: 0.78em; letter-spacing: 0.14em; text-transform: uppercase;
+  font-size: ${NAME_EM}em; letter-spacing: 0.14em; text-transform: uppercase;
   box-shadow: inset 0 0 0 2px #f8f8f8, inset 0 0 0 4px #3860b8;
 }
 .dlg-more {
@@ -112,7 +150,12 @@ const CSS = `
 .dlg-keys b { color: #ffd47a; }
 
 /* the choice menu sits above the text, right-aligned, like a shop list */
-.dlg-menu { align-self: center; width: ${WRAP + 4}ch; max-width: 100%; display: flex; justify-content: flex-end; }
+/* Same width as the box, so the list's right edge lands on the box's. */
+.dlg-menu {
+  align-self: center; box-sizing: border-box;
+  width: calc(${WRAP + PAD * 2}ch + ${FRAME * 2}px); max-width: 100%;
+  display: flex; justify-content: flex-end;
+}
 .dlg-menu[hidden] { display: none; }
 .dlg-menu-inner { padding: 12px 16px 12px 10px; min-width: 11ch; }
 .dlg-opt { display: flex; align-items: baseline; gap: 6px; padding: 1px 0; }
