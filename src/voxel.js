@@ -24,8 +24,8 @@ function colorOf(ch) {
 
 /* ------------------------------------------------------------------ textures */
 
-/** Render a bitmap to a nearest-filtered CanvasTexture (used for ground tiles). */
-export function bitmapTexture(rows, { repeat = 1, transparent = false } = {}) {
+/** A bitmap painted one pixel per pixel onto a 16x16 canvas. */
+function bitmapCanvas(rows, transparent = false) {
   const grid = normalize(rows);
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = W;
@@ -42,6 +42,26 @@ export function bitmapTexture(rows, { repeat = 1, transparent = false } = {}) {
       ctx.fillRect(x, y, 1, 1);
     }
   }
+  return canvas;
+}
+
+/**
+ * The same bitmap as a data URL, for the pieces of this game that are made of
+ * HTML rather than triangles.
+ *
+ * The alternative was a second set of icons drawn as SVG, which is how the
+ * toolbar's own buttons are done — and that would have been two drawings of
+ * every item, kept in step by hand, disagreeing within a week. An item is its
+ * bitmap; the panel shows the same sixteen-by-sixteen the world does, scaled up
+ * with `image-rendering: pixelated` so it stays the same picture.
+ */
+export function bitmapDataUrl(rows) {
+  return bitmapCanvas(rows, true).toDataURL();
+}
+
+/** Render a bitmap to a nearest-filtered CanvasTexture (used for ground tiles). */
+export function bitmapTexture(rows, { repeat = 1, transparent = false } = {}) {
+  const canvas = bitmapCanvas(rows, transparent);
   const tex = new THREE.CanvasTexture(canvas);
   tex.magFilter = THREE.NearestFilter;
   tex.minFilter = THREE.NearestMipmapNearestFilter;

@@ -9,6 +9,9 @@ import { Dialogue, message, partOfDay } from './dialogue.js';
 import { Chat } from './chat.js';
 import { Channel } from './channel.js';
 import { Toolbar } from './toolbar.js';
+import { Inventory } from './inventory.js';
+import { Pickup } from './pickup.js';
+import { itemOf } from './items.js';
 import { ANOKA, TULA, BRAM, villager, SIGNS, WORN_SIGN, OPENING } from './dialogue-scripts.js';
 import { VILLAGERS } from './art.js';
 import { Weather, DAY_LENGTH, DAY_PHASE, dayAt } from './weather.js';
@@ -130,6 +133,10 @@ function applyTimeOfDay(t) {
   // everyone else in the room too, or they are silhouettes after dark: only the
   // local hero carries a lantern
   for (const who of remotes.values()) who.material.emissiveIntensity = skin;
+  // ...and the things lying on the ground, for exactly the same reason. They are
+  // the same kind of object as a character — a camera-facing slab, with the sun
+  // behind it — so without this a coconut on a bright beach is a black dot.
+  for (const p of pickups) p.material.emissiveIntensity = skin;
   // a gentler one for foliage — backlit leaves glow, they do not go flat black
   const leaf = 0.72 * (sun.intensity / 3.2) + 0.05;
   for (const mat of foliage) mat.emissiveIntensity = leaf;
@@ -306,7 +313,34 @@ const dialogue = new Dialogue(document.body, TOUCH
   : {});
 const chat = new Chat({ net, dialogue });
 const channel = new Channel({ net, hasCompany: () => net.online && remotes.size > 0 });
-const toolbar = new Toolbar([channel]);
+const inventory = new Inventory();
+// The bag first, because it is the one that is always there — the chat's button
+// comes and goes with the company, and a bar whose buttons reorder underneath
+// you is a bar you have to look at every time.
+const toolbar = new Toolbar([inventory, channel]);
+
+/*
+  Things lying about, and the one rule that keeps them honest: an item exists in
+  exactly one place at a time. It is on a tile, or it is in the bag, and taking
+  it is the move from one to the other.
+
+  Placed where the island has already said they would be. Bram promises shells by
+  the rocks when the tide is out and there is a rock on the south beach; Anoka
+  cannot get through a conversation without mentioning the coconuts on the north
+  shore; the flower comes off the beds by the fountain that Tula keeps telling
+  you to come and look at. Putting them anywhere else would be furniture.
+*/
+const pickups = [
+  // On the sand beside the palm at 30,7 — the one story.js already has to work
+  // around when it frames the stars, and the north shore Anoka spends every
+  // conversation telling you to walk out to.
+  new Pickup(scene, 'coconut', { x: 31, z: 7 }),
+  // South beach, near Bram but outside the four tiles he wanders, so he is not
+  // forever pathing around it.
+  new Pickup(scene, 'shell', { x: 23, z: 46 }),
+  // The east column of the flower bed west of the fountain.
+  new Pickup(scene, 'flower', { x: 20, z: 24 }),
+];
 
 /*
   One line, two homes. Everything said in the room is logged in the panel;
@@ -333,6 +367,13 @@ dialogue.context = () => ({
 // A line that is supposed to do something to the world says so, and this is
 // where the box hands that over to whoever can. See dialogue.js.
 dialogue.onCue = (cue) => story.cue(cue);
+/*
+  ...and a line where somebody holds something out. The bag can refuse — it has
+  ten slots — and there is nothing sensible for a script to do about that, so it
+  is dropped rather than reported: the line still reads, and the one thing that
+  must not happen is a conversation stopping halfway because your hands are full.
+*/
+dialogue.onGive = (id) => inventory.add(id);
 
 /* ----------------------------------------------------------------- players */
 // Everyone else in the room. They are told to us one step at a time and nothing
@@ -629,6 +670,11 @@ function facing() {
 
   const who = characterAt(x, z);
   if (who?.script) return { verb: 'talk', npc: who };
+  // A thing on the ground holds its tile the same way a person does, so it
+  // arrives here through the same lookup — see pickup.js. Tested before the
+  // peer check because a Pickup has no `id` and would otherwise fall through to
+  // nothing at all.
+  if (who instanceof Pickup) return { verb: 'take', pickup: who };
   // Somebody real. They get the same verb as a villager — from where the player
   // is standing there is no difference worth advertising.
   if (who?.id != null) return { verb: 'talk', peer: who };
@@ -651,6 +697,24 @@ function interact() {
       npc.talking = false;
       npc.onDone?.(why, ending);
     });
+  } else if (target.pickup) {
+    /*
+      Picking something up says so in the same box a sign does, and for the same
+      reason: it is the game telling you something rather than a person, so it
+      gets no name plate. The toast above the bar is the other half of it — that
+      one is for when your eyes are somewhere else entirely.
+
+      A full bag refuses, and *says* it refuses, and the item stays exactly where
+      it was. Silently declining to pick something up is the kind of bug people
+      spend twenty minutes on.
+    */
+    const item = itemOf(target.pickup.id);
+    if (!inventory.add(target.pickup.id)) {
+      dialogue.start(message(`You are carrying too much already to pick up the ${item.name.toLowerCase()}.`));
+    } else {
+      target.pickup.take();
+      dialogue.start(message(`You pick up the ${item.name.toLowerCase()}.`));
+    }
   } else {
     dialogue.start(message(SIGNS[target.sign] ?? WORN_SIGN));
   }
@@ -760,6 +824,7 @@ function frame() {
   if (minimap) minimap.el.root.hidden = indoors;
   if (!indoors) minimap?.update(player, remotes, npcs, net.id);
   updateCamera(dt);
+  for (const p of pickups) p.update(t);
   for (const fn of animated) fn(t);
 
   const hours = (dayT * 24 + 6) % 24;

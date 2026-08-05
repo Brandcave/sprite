@@ -73,6 +73,21 @@ function release(x, z, who) {
   if (!here.size) occupied.delete(k);
 }
 
+/*
+  ...and the same two, for things that stand on a tile without being a character.
+
+  A coconut on the sand wants exactly what a villager wants from this map: to
+  hold its square so nobody walks through it, and to be findable by whoever is
+  facing that square. It does not want the other nine tenths of Character — no
+  facings, no walk cadence, no contact shadow — so rather than make it a
+  Character that never moves, it registers here directly. See pickup.js.
+
+  Everything that reads this map already copes: tileOccupied() keeps walkers out
+  and villagers path around, and characterAt() hands it back to whoever asked
+  what is in front of them.
+*/
+export { claim as occupy, release as vacate };
+
 export function tileOccupied(x, z, ignore = null, ignorePlayers = false) {
   const here = occupied.get(keyOf(x, z));
   if (!here) return false;

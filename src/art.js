@@ -1511,6 +1511,124 @@ export const VILLAGERS = {
   seen for well under a second, and any lopsidedness reads as a mistake rather
   than as character at that speed.
 */
+/*
+  Things you can be holding.
+
+  Drawn small and centred, on transparent ground, because each one is read at
+  two sizes that have nothing in common: a few pixels tall standing on a beach
+  tile, and again as an icon in a list where it is the only thing in its box.
+  So none of them fills the grid — they sit in the middle ten pixels or so with
+  air around them, which is what stops the icon from looking cropped and the
+  world sprite from looking like a billboard.
+
+  Every one of them is a thing somebody on this island has already mentioned.
+  Anoka has been going on about coconuts since the first conversation, Bram says
+  there are always shells when the tide goes out, and the bread and the fruit
+  are the picnic, named in Amy's own line about it. Nothing here is inventory
+  filler invented to have something to pick up.
+*/
+export const ITEMS = {
+  // A round loaf with a slashed crust — the crust lines are the only thing that
+  // says bread rather than stone, so they are the lightest value on it.
+  bread: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '.....kkkkk......',
+    '....konnnok.....',
+    '...konEnnnok....',
+    '..konnEnnnnok...',
+    '..konnnEnnnok...',
+    '..koNnnnEnnok...',
+    '...koNnnnnok....',
+    '....kooNNok.....',
+    '.....kkkkk......',
+    '................',
+    '................',
+    '................',
+  ],
+  // A mango: fat at the bottom, one leaf off the stem. The leaf is what keeps it
+  // from reading as a pebble at three pixels tall.
+  fruit: [
+    '................',
+    '................',
+    '................',
+    '.......k........',
+    '......kNk.......',
+    '.....kNkdk......',
+    '....kk.kGdk.....',
+    '...k44kkkGk.....',
+    '..k4447744k.....',
+    '..k44477444k....',
+    '..k444444444k...',
+    '..k4444444444k..',
+    '...k444444444k..',
+    '....kk4444kkk...',
+    '......kkkk......',
+    '................',
+  ],
+  // A coconut, husked: three eyes in a row, which is the whole of what makes a
+  // brown ball a coconut.
+  coconut: [
+    '................',
+    '................',
+    '................',
+    '.....kkkkk......',
+    '....kzzzzzk.....',
+    '...kzzuuzzzk....',
+    '..kzzuzzzzzzk...',
+    '..kzkkzkkzzzk...',
+    '..kzkkzkkzzzk...',
+    '..kzzzzzzzzzk...',
+    '..kzUzzzzzzUk...',
+    '...kUzzzzzUk....',
+    '....kUUUUUk.....',
+    '.....kkkkk......',
+    '................',
+    '................',
+  ],
+  // A fan shell, ribbed. The ribs run to the hinge, so it reads as a shell from
+  // the shape of the lines rather than from the outline alone.
+  shell: [
+    '................',
+    '................',
+    '................',
+    '................',
+    '....k.k.k.k.....',
+    '...kFkFkFkFk....',
+    '..kFFmFFmFFFk...',
+    '..kFmFFmFFmFk...',
+    '.kFFmFFmFFmFFk..',
+    '.kFmFFmFFmFFmk..',
+    '.kFFFmFFmFFFFk..',
+    '..kFFFfFFfFFk...',
+    '...kkFFfFFkk....',
+    '.....kkfkk......',
+    '......kkk.......',
+    '................',
+  ],
+  // One flower off the beds by the plaza, stem and all.
+  flower: [
+    '................',
+    '................',
+    '................',
+    '......kkk.......',
+    '.....kfffk......',
+    '....kffyffk.....',
+    '....kfyyyfk.....',
+    '....kffyffk.....',
+    '.....kfffk......',
+    '......kGk.......',
+    '......kGk.......',
+    '.....kGGk.......',
+    '....kdGk........',
+    '.....kGk........',
+    '......kk........',
+    '................',
+  ],
+};
+
 export const FIREWORK = {
   // A hot core with eight arms off it. The core has to be solid: a shell is
   // roughly three hundred pixels across on screen, and an earlier version drawn

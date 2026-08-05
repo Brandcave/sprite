@@ -26,6 +26,13 @@
                   know or care what it means; it is how a script says "and this
                   is the moment the sky goes off" without the script having to
                   reach into the world to do it.
+    give: 'x'     an item id handed to onGive when the line opens — the line
+                  where somebody holds something out is the line you receive it
+                  on. Deliberately not spelled as a cue, though it could have
+                  been: a cue is a thing happening to the world and this is a
+                  thing happening to you, they are answered by different parts
+                  of the game, and a script saying `give: 'coconut'` is readable
+                  by somebody who has never opened this file.
 
   And close() reports the node the script came to rest on, so a caller can tell
   which of three endings it reached without the box having to understand any of
@@ -262,6 +269,9 @@ export class Dialogue {
     // What a `cue` on a node fires. One handler for the whole game, because a
     // cue is a thing happening in the world, not a thing happening in the box.
     this.onCue = null;
+    // ...and what a `give` on a node hands over. Same shape, different half of
+    // the game: a cue reaches the island, this reaches your bag.
+    this.onGive = null;
     this.node = null;
     this.ending = null;     // the last node reached — reported by close()
     this.pages = [];
@@ -357,6 +367,7 @@ export class Dialogue {
     this.hideChoices();
     this.openPage();
     if (node.cue) this.onCue?.(node.cue);
+    if (node.give) this.onGive?.(node.give);
   }
 
   openPage() {

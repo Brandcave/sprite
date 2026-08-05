@@ -216,8 +216,21 @@ const ANOKA_MET = {
       },
       next: 'bye',
     },
+    /*
+      The one line in the ambient dialogue that hands you something — see `give`
+      in dialogue.js. It goes here rather than anywhere else because she has
+      been talking about coconuts since the first conversation and this is the
+      branch where you admit you do not know what she means; a woman who has
+      just been asked "palms?" is a woman who is about to produce a coconut.
+
+      Ambient dialogue runs as many times as you care to press Z, so this can
+      hand out as many as you can carry. That is the right behaviour and not an
+      oversight: she is standing next to an entire shore of them, and a villager
+      who rations coconuts is a stranger thing than one who does not.
+    */
     what: {
-      text: 'Ha! Come on now. Whole northern shore is nothing but palms and coconuts. Follow the sand and you can\'t miss them.',
+      text: 'Ha! Come on now. Whole northern shore is nothing but palms and coconuts. Here — take this one and see for yourself.',
+      give: 'coconut',
       next: 'bye',
     },
     bye: {
