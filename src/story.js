@@ -5,6 +5,7 @@ import { inBounds, isBlocked } from './place.js';
 import { sim } from './sim.js';
 import { dayAt, DAY_LENGTH } from './weather.js';
 import { AMY_HOUSE, AMY_FOUNTAIN, amyDate } from './dialogue-scripts.js';
+import { blanket, tableSetting } from './setting.js';
 
 /*
   Amy, and the only thing on this island that happens in an order.
@@ -231,6 +232,39 @@ export class Story {
     });
     this.amy.face(start.facing, 0);
     this.amy.onDone = (why, ending) => this.done(why, ending);
+
+    /*
+      What she has laid out, keyed by the beat it belongs to — see setting.js.
+
+      Built once here rather than when she arrives, because building a mesh is
+      the sort of thing that costs a frame the first time it is drawn, and the
+      first time it would be drawn is the moment you walk up to her. So they are
+      made now, while nothing is happening, and only shown later.
+
+      Three beats have one and the other two do not: she is sheltering in the
+      house rather than hosting, and the fountain is a place she asked you to
+      come to, not a thing she prepared.
+    */
+    this.settings = {
+      /*
+        Three across, two deep, and pushed a half tile back off her — she stands
+        at 35, whose middle is 35.5, and the lagoon begins at 36. Centring on
+        35.0 puts the near edge exactly on the waterline and the far edge two
+        tiles up the road, so the cloth runs right to the water without a corner
+        of it afloat, and she is sitting at the front of it rather than the
+        middle. Which is where you would sit.
+      */
+      picnic: blanket(scene, { cx: 30.5, cz: 35.0, w: 3, d: 2 }),
+      /*
+        Open sand and nothing to clear, so this one is simply centred on her —
+        28.5, 10.5 is the middle of her tile. Three deep rather than two because
+        it is the one they lie back on, and because whichever side you walk up
+        on, you arrive onto it.
+      */
+      stars: blanket(scene, { cx: 28.5, cz: 10.5, w: 3, d: 3 }),
+      // A plate each and a candle between them, on the near edge of the table.
+      dinner: tableSetting(rooms.dining, { plates: [[3, 1], [5, 1]], flame: [4, 1] }),
+    };
     // Fading her out means fading her own materials, which is safe because a
     // Character builds its own rather than sharing one — but they still have to
     // be told they are allowed to be see-through before anybody tries.
@@ -336,9 +370,17 @@ export class Story {
     after();
   }
 
+  /** Only what belongs to the beat we are on is out; everything else is away. */
+  layOut(stage) {
+    for (const [name, group] of Object.entries(this.settings)) {
+      group.visible = name === stage;
+    }
+  }
+
   moveTo(stage) {
     const spot = this.spots[stage];
     this.stage = stage;
+    this.layOut(stage);
     // homeX/homeZ as well as the tile: home is what her schedule walks her back
     // towards, and leaving it behind in the last room would have her spend the
     // rest of the game trying to get there.
@@ -352,6 +394,11 @@ export class Story {
 
   finish() {
     this.stage = 'gone';
+    // She takes it with her. A blanket left on the sand after she has sailed is
+    // a lovely thought and an odd object — it would sit there for the rest of
+    // the game with nobody to pick it up, and read as something forgotten by the
+    // engine rather than by her.
+    this.layOut(null);
     this.vanish();
   }
 

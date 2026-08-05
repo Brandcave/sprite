@@ -195,6 +195,40 @@ export const TILES = {
     'EcEEEEEcEcEEEEEE',
     'cEEEEEEEcEEEEEEE',
   ],
+  /*
+    The blanket Amy lays out for a date — on the sand for the stars, on the end
+    of the road for the lagoon.
+
+    Unlike every other tile in this file it is authored as one whole object
+    rather than a patch to be repeated: it is stretched once over the entire
+    plane, so this bitmap *is* the blanket, border and all, and the check has to
+    be drawn at the size it will be seen. Repeating it would give a field of
+    cloth rather than a thing somebody carried down there and put out.
+
+    Red and white, because it wants to be the one warm thing on a beach at
+    midnight and a plain colour would read as a hole in the ground. The border
+    is the darker red so it has an edge rather than fading into whatever it is
+    lying on, which matters most on the road, where the path is nearly the same
+    value as the cloth.
+  */
+  blanket: [
+    'RRRRRRRRRRRRRRRR',
+    'RmmrrmmrrmmrrmmR',
+    'RmmrrmmrrmmrrmmR',
+    'RrrmmrrmmrrmmrrR',
+    'RrrmmrrmmrrmmrrR',
+    'RmmrrmmrrmmrrmmR',
+    'RmmrrmmrrmmrrmmR',
+    'RrrmmrrmmrrmmrrR',
+    'RrrmmrrmmrrmmrrR',
+    'RmmrrmmrrmmrrmmR',
+    'RmmrrmmrrmmrrmmR',
+    'RrrmmrrmmrrmmrrR',
+    'RrrmmrrmmrrmmrrR',
+    'RmmrrmmrrmmrrmmR',
+    'RmmrrmmrrmmrrmmR',
+    'RRRRRRRRRRRRRRRR',
+  ],
   // The mat by the door, laid on top of the floor rather than tiled. It is the
   // only bright thing indoors, which is the whole job: it says *here* is the way
   // out without a label, an arrow, or a line of dialogue.
