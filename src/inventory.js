@@ -24,6 +24,10 @@ import { bitmapDataUrl } from './voxel.js';
   desync anything.
 */
 
+const SLOTS = 10;             // two rows of five
+const TOAST = 2200;           // how long "you picked something up" stays up
+const POP = 460;              // ...and how long it takes to burst when it goes
+
 const CSS = `
 .inv-panel { display: flex; flex-direction: column; gap: 8px; padding: 10px 11px 11px; min-width: 0; }
 
@@ -62,8 +66,37 @@ const CSS = `
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
 }
 
-/* the read-out under the grid: what the highlighted slot is */
-.inv-read { min-height: 2.9em; }
+/*
+  The read-out under the grid: what the highlighted slot is.
+
+  Its height is fixed, and that is the whole point of it. Left to size itself it
+  was as tall as whatever note was in it, so moving the cursor one slot along
+  changed the height of the bar — the panel grew and shrank under the pointer,
+  and on the way it moved the slots you were reading. A drawer that resizes
+  while you look through it is unusable.
+
+  So the space is reserved for the longest thing that can go in it: one line of
+  name and three of note. The notes in items.js are written to that budget, which
+  is a constraint on the prose rather than on the layout — see the note there.
+
+  Three lines is exact at both widths this panel is ever really given: 340 on a
+  desktop and 300 on a phone. It is not enough on a desktop window narrowed to
+  about six hundred pixels, where everything wraps one line further — so it
+  scrolls rather than clips. Overflow hidden was the first version of this and it
+  silently ate the last line of the longer notes at that width, which is a worse
+  failure than the one it was fixing: a resizing panel is annoying and obvious,
+  and missing prose is invisible.
+*/
+.inv-read { height: 72px; overflow-y: auto; scrollbar-width: thin; }
+/*
+  ...except when the bag is empty, where there is nothing to reserve it for. The
+  height exists so the panel does not resize as you move between slots, and with
+  nothing in it there are no slots to move between — one line saying so, and no
+  drop of empty space under it pretending something might appear there.
+*/
+.inv-panel[data-empty="true"] .inv-read { height: auto; overflow: visible; }
+.inv-read::-webkit-scrollbar { width: 4px; }
+.inv-read::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.22); border-radius: 2px; }
 .inv-name { color: #ffd47a; letter-spacing: 0.04em; }
 .inv-note { opacity: 0.85; font-size: 12px; }
 .inv-empty { opacity: 0.6; font-size: 12px; }
@@ -74,7 +107,10 @@ const CSS = `
   handed something at the end of a conversation is completely silent — the box
   closes and a number you cannot see has gone up by one.
 */
-.inv-toast { display: flex; align-items: center; gap: 9px; padding: 7px 12px 7px 8px; }
+.inv-toast {
+  display: inline-flex; align-items: center; gap: 9px; padding: 7px 12px 7px 8px;
+  transform-origin: 20% 100%;
+}
 .inv-toast[hidden] { display: none; }
 .inv-toast img { width: 26px; height: 26px; image-rendering: pixelated; }
 .inv-toast b { color: #ffd47a; font-weight: 500; }
@@ -83,10 +119,35 @@ const CSS = `
   from { opacity: 0; transform: translateY(12px) scale(0.94); }
   to { opacity: 1; transform: none; }
 }
-`;
 
-const SLOTS = 10;             // two rows of five
-const TOAST = 2600;           // how long "you picked something up" stays up
+/*
+  And out the way a chat line goes out — see channel.js, which is where this
+  shape was worked out. Tighten for an instant, then lift, swell and burst.
+
+  Deliberately the same motion rather than a shared class: these two live above
+  the same bar and a second way of leaving would read as a second kind of thing.
+  Reaching into channel.js for its keyframes would be worse, though — the chat
+  would then be unable to change its own animation without silently changing the
+  bag's, which is exactly the coupling that makes shared CSS a trap.
+*/
+.inv-toast.inv-pop {
+  transform-origin: center;
+  animation: inv-burst ${POP}ms cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+@keyframes inv-burst {
+  0% { transform: translateY(0) scale(1); opacity: 1; filter: none; }
+  22% { transform: translateY(0) scale(0.92); opacity: 1; }
+  100% { transform: translateY(-18px) scale(1.4); opacity: 0; filter: blur(2px); }
+}
+/* On a phone the bar is at the top and everything hangs below it, so it bursts
+   downward instead — the same flip the chat makes. */
+body.touch .inv-toast.inv-pop { animation-name: inv-burst-down; }
+@keyframes inv-burst-down {
+  0% { transform: translateY(0) scale(1); opacity: 1; filter: none; }
+  22% { transform: translateY(0) scale(0.92); opacity: 1; }
+  100% { transform: translateY(18px) scale(1.4); opacity: 0; filter: blur(2px); }
+}
+`;
 
 const ICON = `<svg viewBox="0 0 24 24" width="19" height="19" fill="none"
   stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -211,6 +272,8 @@ export class Inventory {
 
   render() {
     const held = this.list();
+    // Lets the read-out collapse when there is nothing to read about — see CSS.
+    this.panel.dataset.empty = String(held.length === 0);
     [...this.el.grid.children].forEach((slot, i) => {
       const entry = held[i];
       const img = slot.querySelector('img');
@@ -262,25 +325,50 @@ export class Inventory {
       + `<div class="inv-note">${item.note}</div>`;
   }
 
-  /** A moment's notice that something arrived, wherever you were looking. */
+  /**
+   * A moment's notice that something arrived, wherever you were looking.
+   *
+   * It holds for a couple of seconds and then bursts, the way a chat line does.
+   * Whether it is on screen at all is the toolbar's to apply and this class's to
+   * decide — see ambientShowing() — so nothing here touches `hidden`. Having two
+   * owners of that one attribute is what left an empty pane above the bar for
+   * the whole game.
+   */
   announce(id) {
     const item = itemOf(id);
     const el = this.el.toast;
     el.innerHTML = `<img src="${bitmapDataUrl(item.art)}" alt=""><span>Got <b>${item.name}</b></span>`;
-    el.hidden = false;
-    // Restart the animation even if one is already running, so two things
-    // picked up quickly both register instead of the second arriving silently.
-    el.classList.remove('inv-in');
+    // Start over even if one is already up, so two things picked up quickly both
+    // register instead of the second arriving silently — or worse, arriving
+    // mid-burst and vanishing with it.
+    el.classList.remove('inv-in', 'inv-pop');
     void el.offsetWidth;
     el.classList.add('inv-in');
-    clearTimeout(this.toastTimer);
-    this.toastTimer = setTimeout(() => { el.hidden = true; }, TOAST);
+    this.toastUp = true;
+
+    clearTimeout(this.holdTimer);
+    clearTimeout(this.popTimer);
+    this.holdTimer = setTimeout(() => {
+      el.classList.add('inv-pop');
+      // Down only once the burst has finished playing; taking it away at the
+      // start of the animation would be a cut rather than an exit.
+      this.popTimer = setTimeout(() => { this.toastUp = false; }, POP);
+    }, TOAST);
   }
 
   /* ------------------------------------------------- the rest of the tool */
 
   available() {
     return true;
+  }
+
+  /**
+   * The bag is always available; the little "Got X" above the bar is not. Those
+   * being two different questions is the whole reason toolbar.js grew this hook
+   * — see the note on the tool contract there.
+   */
+  ambientShowing() {
+    return this.toastUp === true;
   }
 
   typing() {

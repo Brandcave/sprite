@@ -18,31 +18,38 @@ import { ITEMS } from './art.js';
   `stacks` is false for the things that are worth exactly one. A single flower
   picked for somebody is a gesture; six of them in a slot marked ×6 is a
   harvest, and the difference matters more here than the saved space does.
+
+  A note has a budget: about seventy characters, which is three lines in the
+  drawer. That is not fussiness. The read-out is a fixed height — it has to be,
+  or moving the cursor one slot along resizes the bar under the pointer — so the
+  space is reserved once for the longest note there will ever be. Going over does
+  not break anything, it just means that note has to be scrolled to be read,
+  which nobody will do. Write short. It reads better short anyway.
 */
 const CATALOGUE = {
   bread: {
     name: 'Bread',
-    note: 'A small round loaf, still warm at the middle. Enough for two, if the two of you are not greedy.',
+    note: 'A small round loaf, still warm in the middle. Enough for two.',
     art: ITEMS.bread,
   },
   fruit: {
     name: 'Fruit',
-    note: 'Ripe to the point of being a decision rather than a snack. It will not keep another day.',
+    note: 'Ripe to the point of being a decision rather than a snack.',
     art: ITEMS.fruit,
   },
   coconut: {
     name: 'Coconut',
-    note: 'Heavier than it looks, and no obvious way in. Anoka would know; Anoka would also enjoy being asked.',
+    note: 'Heavier than it looks, and no obvious way into it. Anoka would know.',
     art: ITEMS.coconut,
   },
   shell: {
     name: 'Shell',
-    note: 'A fan shell, whole, both halves still hinged. Bram says there are always shells when the tide goes out, and for once he was right.',
+    note: 'A fan shell, whole, both halves still hinged. Bram was right for once.',
     art: ITEMS.shell,
   },
   flower: {
     name: 'Flower',
-    note: 'Picked from the beds by the fountain. It will be dead by morning, which is rather the point of picking one.',
+    note: 'Picked from the beds by the fountain. It will be dead by morning.',
     art: ITEMS.flower,
     stacks: false,
   },
