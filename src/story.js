@@ -91,10 +91,30 @@ function spotsFor({ parlour, dining }) {
       x: dining.x0 + 4, z: dining.z0 + 2, facing: 2, script: amyDate('dinner'),
       exit: { ...dining.mat, door: true },
     },
-    // The sand on the north lip of the lagoon, water directly in front of her.
+    /*
+      The end of the south road, where it runs out at the lagoon.
+
+      She was on the sand off the east side of it, which is beside the water
+      rather than at the end of anything: you arrived from the side, the road
+      went past her instead of to her, and the shot had no line to lead in on.
+
+      The road is six tiles wide, 27 through 32, and stops dead at z 35 with
+      water at 36 — so this is both the end of the road and the water's edge,
+      and x 30 is the road's own centre line. It is the line the fountain stands
+      on too, eight tiles up: the same road that took you to her the second time
+      takes you to her the fourth, which is worth more than a nicer patch of
+      sand.
+
+      Nothing is overhead here. The street lamps flank the road at 26 and 33
+      rather than stand on it, and the palms on the lip are further out still at
+      22 and 37 — worth stating because the camera draws anything north of her
+      above her head, and the spot was picked by checking rather than by eye.
+    */
     picnic: {
-      x: 34, z: 35, facing: 2, script: amyDate('picnic'),
-      exit: { x: 34, z: 29 },                     // up the path, into the trees
+      x: 30, z: 35, facing: 2, script: amyDate('picnic'),
+      // Back up the road she came down, away from the camera, which is the
+      // direction a departure reads best in.
+      exit: { x: 30, z: 29 },
     },
     /*
       The end of the road, where the island's one street runs out into the north
