@@ -107,7 +107,9 @@ const KEYS = [
   { t: 1.00, sun: 0xffb070, sunI: 1.6, sky: 0xffc9a0, ground: 0x6b5a3a, skyI: 0.55, fog: 0xf0b98a, bg: 0xf3c79c, exposure: 1.0 },
 ];
 
-scene.fog = new THREE.Fog(0xc9e2ff, 34, 78);
+const FOG_NEAR = 34;
+const FOG_FAR = 78;
+scene.fog = new THREE.Fog(0xc9e2ff, FOG_NEAR, FOG_FAR);
 scene.background = new THREE.Color(0x9fd0ff);
 
 const cA = new THREE.Color();
@@ -618,20 +620,15 @@ function startKissCam(a, b) {
   kiss.running = true;
 }
 
-/** Where the camera wants to be this frame, or null when it is just following. */
-function kissCam(dt) {
-  if (!kiss.running) return null;
-  kiss.t += dt;
-  if (kiss.t >= KISS_TIME) { kiss.running = false; return null; }
-
+/** One frame of a keyframe table: everything a shot needs except its target. */
+function sampleShot(TABLE, t) {
   let i = 0;
-  while (i < KISS_CAM.length - 2 && kiss.t >= KISS_CAM[i + 1].t) i++;
-  const a = KISS_CAM[i];
-  const b = KISS_CAM[i + 1];
-  const k = smooth((kiss.t - a.t) / (b.t - a.t));
+  while (i < TABLE.length - 2 && t >= TABLE[i + 1].t) i++;
+  const a = TABLE[i];
+  const b = TABLE[i + 1];
+  const k = smooth((t - a.t) / (b.t - a.t));
   const mix = (key) => THREE.MathUtils.lerp(a[key], b[key], k);
   return {
-    at: kiss.at,
     dist: mix('dist'),
     pitch: THREE.MathUtils.degToRad(mix('pitch')),
     look: mix('look'),
@@ -640,8 +637,64 @@ function kissCam(dt) {
   };
 }
 
+/** Where the camera wants to be this frame, or null when it is just following. */
+function kissCam(dt) {
+  if (!kiss.running) return null;
+  kiss.t += dt;
+  if (kiss.t >= KISS_TIME) { kiss.running = false; return null; }
+  return { at: kiss.at, ...sampleShot(KISS_CAM, kiss.t) };
+}
+
+/*
+  ...and the other time it is not locked: the arrival.
+
+  While the opening lines run, the camera starts down on the sand with him —
+  eye level, close enough that the island is just ground and light — and then
+  draws up and back, past the framing the game lives at, out until the whole
+  island sits below you, and comes home. It is the game answering the text: a
+  year at sea, and this is the whole of where you have washed up.
+
+  Same table, same rules as the kiss. `spin` stays 0 the whole way — this shot
+  is a breath out and back in, not an orbit — so the quarter-turn framing never
+  lies and input needs no special case beyond "not during the shot".
+
+  The one thing the kiss never needed: fog. The wall of haze sits at 78 units
+  to keep the resting shot cosy, and the island-wide frame is well beyond it —
+  so the fog rides out with the camera, scaled by how far past the resting
+  distance it is, and is exactly back to rest by the last keyframe because the
+  last keyframe is the resting distance.
+*/
+const INTRO_CAM = [
+  // seconds | tiles back | degrees up | tiles above them | lens | turns round
+  { t: 0.0, dist: 2.6, pitch: 6, look: 0.9, fov: 44, spin: 0 },
+  { t: 3.0, dist: 3.2, pitch: 8, look: 0.9, fov: 44, spin: 0 },    // eye level, while he arrives
+  { t: 8.0, dist: 30, pitch: 47, look: 0.6, fov: 34, spin: 0 },    // up and back, past the resting frame
+  { t: 12.0, dist: 95, pitch: 55, look: 0.0, fov: 40, spin: 0 },   // the whole island below
+  { t: 13.5, dist: 95, pitch: 55, look: 0.0, fov: 40, spin: 0 },   // hold
+  { t: 18.0, dist: DISTANCE, pitch: 46, look: LOOK, fov: FOV, spin: 0 },
+];
+const INTRO_TIME = INTRO_CAM[INTRO_CAM.length - 1].t;
+
+const intro = { t: 0, running: false };
+
+function introCam(dt) {
+  if (!intro.running) return null;
+  intro.t += dt;
+  if (intro.t >= INTRO_TIME) {
+    intro.running = false;
+    scene.fog.near = FOG_NEAR;
+    scene.fog.far = FOG_FAR;
+    return null;
+  }
+  const shot = { at: player.position, ...sampleShot(INTRO_CAM, intro.t) };
+  const f = Math.max(1, shot.dist / DISTANCE);
+  scene.fog.near = FOG_NEAR * f;
+  scene.fog.far = FOG_FAR * f;
+  return shot;
+}
+
 function updateCamera(dt) {
-  const shot = kissCam(dt);
+  const shot = kissCam(dt) ?? introCam(dt);
   const yaw = (YAW_INDEX * Math.PI) / 2 + (shot ? shot.yaw : 0);
 
   camOffset.set(
@@ -887,8 +940,10 @@ function frame() {
   */
   // ...nor while still fading in on the spawn tile — a hero walking off
   // half-solid leaves the arrival playing over empty ground.
-  const dir = dialogue.active || toolbar.typing || story.busy || kiss.running || appearT < 1
-    ? -1 : inputDirection();
+  // ...nor during the arrival shot, whose framing is as much of a lie to the
+  // screen-space controls as the kiss orbit is.
+  const dir = dialogue.active || toolbar.typing || story.busy || kiss.running || intro.running
+    || appearT < 1 ? -1 : inputDirection();
   const through = dir >= 0 && !player.moving ? doorway(dir) : null;
   if (through) through();
 
@@ -922,7 +977,7 @@ function frame() {
   // thrown on screen over the top of whatever was there; this is where it lands.
   chat.drain();
   toolbar.update();
-  dialogue.showHint(!dialogue.active && !story.busy && !kiss.running && facing()?.verb);
+  dialogue.showHint(!dialogue.active && !story.busy && !kiss.running && !intro.running && facing()?.verb);
   touch?.showBack(dialogue.active);
   if (minimap) minimap.el.root.hidden = indoors;
   if (!indoors) minimap?.update(player, remotes, npcs, net.id);
@@ -972,6 +1027,10 @@ const begin = () => {
   player.material.opacity = 0;
   player.blob.material.opacity = 0;
   onAppeared = () => dialogue.start(OPENING);
+  // ...seen from down on the sand with him. The card fades off a camera that
+  // is already at eye level, so the shot has no visible first move.
+  intro.t = 0;
+  intro.running = true;
 };
 if (title.active) title.onStart = begin;
 else begin();
@@ -992,4 +1051,6 @@ Object.assign(window, {
   // The kiss shot, for tuning it: `kiss.t` is the second of it you are looking
   // at, so pinning that in a loop holds the camera on one frame of the move.
   kiss, startKissCam, KISS_CAM, camTarget, view,
+  // ...and the arrival, for the same reason: pin `intro.t` to look at one frame.
+  intro, INTRO_CAM,
 });
