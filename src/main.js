@@ -23,6 +23,18 @@ import { TOUCH, TouchControls } from './touch.js';
 import { Minimap } from './minimap.js';
 import { Story } from './story.js';
 import { Fireworks } from './fireworks.js';
+import { startMusic } from './music.js';
+import { Title } from './title.js';
+
+startMusic('/moonlit-save-point.mp3');
+
+/* ------------------------------------------------------------ title screen */
+
+// Up before anything else is even asked for — the relay handshake below can
+// take a moment, and the card is what you look at while it waits. The island
+// finishes building and lighting itself behind the overlay; pressing start
+// only lifts it. On a reload the page starts over, so the card does too.
+const title = new Title();
 
 /* --------------------------------------------------------------- renderer */
 
@@ -189,6 +201,37 @@ const { animated, lamps, foliage, lampMetal, windUniforms, puddles } = buildWorl
 const SPAWN = [[31, 28], [30, 28], [32, 28], [31, 27], [30, 27], [32, 27], [31, 29], [30, 29], [32, 29]];
 const spawn = SPAWN[(net.id ?? 0) % SPAWN.length];
 const player = new Player(scene, spawn[0], spawn[1], net.id);
+
+/*
+  The hero is not here yet. The title card is still up, and stepping off the
+  boat happens when it lifts: appearT runs 0..1 from that moment and fades him
+  in — the sprite rising from nothing to solid, the contact shadow darkening
+  under him at the same rate. Quiet on purpose. The material is only
+  transparent for the duration: blended billboards sort against each other, so
+  it goes back to opaque the moment the fade has nothing left to blend.
+*/
+player.group.visible = false;
+const APPEAR_TIME = 0.7;
+let appearT = title.active ? -1 : 1;    // -1: waiting for the card to lift
+
+function updateAppear(dt) {
+  if (appearT < 0 || appearT >= 1) return;
+  appearT = Math.min(1, appearT + dt / APPEAR_TIME);
+  const t = THREE.MathUtils.smoothstep(appearT, 0, 1);
+  player.group.visible = true;
+  player.material.opacity = t;
+  player.blob.material.opacity = 0.22 * t;
+  if (appearT >= 1) {
+    player.material.transparent = false;
+    player.material.opacity = 1;
+    // The opening lines wait for him to be solid. Fired from here rather than
+    // from a timer, because this runs on frame time: in a throttled background
+    // tab a timer would open the box over a hero still fading in.
+    onAppeared?.();
+    onAppeared = null;
+  }
+}
+let onAppeared = null;
 
 // Villagers. Each keeps to a home tile and a roam radius, so they stay where
 // they were placed — one on the lawn by the path, one up by the houses.
@@ -668,6 +711,9 @@ const TALK_KEYS = new Set(['KeyZ', 'KeyE', 'Enter', 'Space']);
  *          browser's. Only a real key event has anything to preventDefault.
  */
 function keyDown(code) {
+  // The title card is up: Space lifts it, and everything else is swallowed so
+  // nobody is already walking when the island appears.
+  if (title.active) return title.key(code);
   // Typing in the panel is not playing. Its field stops keys reaching here at
   // all, so this only catches the gap between clicking it and the first press.
   if (toolbar.typing) return false;
@@ -839,13 +885,16 @@ function frame() {
     make the mapping continuous but to not be taking input at all. It is a
     cutscene; she has just kissed you.
   */
-  const dir = dialogue.active || toolbar.typing || story.busy || kiss.running
+  // ...nor while still fading in on the spawn tile — a hero walking off
+  // half-solid leaves the arrival playing over empty ground.
+  const dir = dialogue.active || toolbar.typing || story.busy || kiss.running || appearT < 1
     ? -1 : inputDirection();
   const through = dir >= 0 && !player.moving ? doorway(dir) : null;
   if (through) through();
 
   const walked = player.stepCount;
   player.update(dt, through ? -1 : dir, YAW_INDEX);
+  updateAppear(dt);
   // One message per step taken, sent as the step begins so everyone else walks
   // it at the same moment we do. Standing still costs nothing.
   if (player.stepCount !== walked) net.step(player.tileX, player.tileZ, player.facing, here().id);
@@ -911,8 +960,21 @@ frame();
   the talk key, and Escape already closes one — so somebody who has read it
   twice can skip it with the key that means "leave this alone" everywhere else
   in the game.
+
+  Both of these now wait for the title card. Pressing start is what puts the
+  hero on the sand — the materialise runs, and the box opens once he is solid,
+  so the arrival is watched rather than read over. If the card was already
+  dismissed while the relay handshake dragged on, begin() runs right away.
 */
-dialogue.start(OPENING);
+const begin = () => {
+  appearT = 0;
+  player.material.transparent = true;
+  player.material.opacity = 0;
+  player.blob.material.opacity = 0;
+  onAppeared = () => dialogue.start(OPENING);
+};
+if (title.active) title.onStart = begin;
+else begin();
 
 // convenience for poking at the scene from devtools; setDay(0.75) jumps to night
 Object.assign(window, {
